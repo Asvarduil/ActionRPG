@@ -17,18 +17,36 @@ var Main;
 (function (Main) {
     Main.mapService = null;
     Main.stateService = null;
+    Main.menuFactory = null;
     var App = /** @class */ (function () {
         function App() {
             this.game = null;
             this.game = new Phaser.Game(640, 480, Phaser.CANVAS, 'content');
-            Main.mapService = new Main.Services.MapService(this.game);
+            this.registerFactories();
+            this.registerServices();
             this.registerStates();
-            Main.stateService.startFirstState();
+            this.appStart();
         }
-        App.prototype.registerStates = function () {
+        App.prototype.registerServices = function () {
+            Main.mapService = new Main.Services.MapService(this.game);
             Main.stateService = new Main.Services.StateService(this.game);
+        };
+        App.prototype.registerFactories = function () {
+            var defaultStyle = {
+                fill: '#FFF'
+            };
+            var selectedStyle = {
+                fill: '#FF3'
+            };
+            Main.menuFactory = new Main.UI.MenuFactory(this.game, defaultStyle, selectedStyle);
+        };
+        App.prototype.registerStates = function () {
+            Main.stateService.addState('title', Main.States.TitleState);
             Main.stateService.addState('game', Main.States.GameState);
             Main.stateService.readyStates();
+        };
+        App.prototype.appStart = function () {
+            Main.stateService.startFirstState();
         };
         return App;
     }());
@@ -82,6 +100,12 @@ var Main;
             StateService.prototype.startFirstState = function () {
                 this.game.state.start(this.states[0].key);
             };
+            StateService.prototype.load = function (state) {
+                this.game.state.start(state, true, false);
+            };
+            StateService.prototype.overlay = function (state) {
+                this.game.state.start(state, false, false);
+            };
             return StateService;
         }());
         Services.StateService = StateService;
@@ -121,5 +145,137 @@ var Main;
         }(Phaser.State));
         States.GameState = GameState;
     })(States = Main.States || (Main.States = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var States;
+    (function (States) {
+        var TitleState = /** @class */ (function (_super) {
+            __extends(TitleState, _super);
+            function TitleState() {
+                return _super.call(this) || this;
+            }
+            TitleState.prototype.preload = function () {
+            };
+            TitleState.prototype.create = function () {
+                var _this = this;
+                var toGameState = function () {
+                    console.log('Pressed!');
+                    Main.stateService.load('game');
+                };
+                var data = new Main.UI.MenuData([
+                    new Main.UI.MenuOptionData('New Game', 8, 240, toGameState),
+                    new Main.UI.MenuOptionData('Continue', 8, 280, toGameState)
+                ], 0);
+                this.mainMenu = Main.menuFactory.create(data);
+                this.cursors = this.game.input.keyboard.createCursorKeys();
+                this.cursors.down
+                    .onDown.add(function () {
+                    _this.mainMenu.selectNext();
+                });
+                this.cursors.up
+                    .onDown.add(function () {
+                    _this.mainMenu.selectPrevious();
+                });
+                this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
+                    .onDown.add(function () {
+                    _this.mainMenu.executeSelection();
+                });
+            };
+            TitleState.prototype.update = function () {
+            };
+            return TitleState;
+        }(Phaser.State));
+        States.TitleState = TitleState;
+    })(States = Main.States || (Main.States = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var UI;
+    (function (UI) {
+        var MenuData = /** @class */ (function () {
+            function MenuData(options, defaultOption) {
+                this.options = options;
+                this.defaultOption = defaultOption;
+            }
+            return MenuData;
+        }());
+        UI.MenuData = MenuData;
+        var MenuOptionData = /** @class */ (function () {
+            function MenuOptionData(optionText, screenX, screenY, onSelection, otherData) {
+                if (optionText === void 0) { optionText = ''; }
+                if (screenX === void 0) { screenX = 0; }
+                if (screenY === void 0) { screenY = 0; }
+                this.optionText = optionText;
+                this.screenX = screenX;
+                this.screenY = screenY;
+                this.onSelection = onSelection;
+                this.otherData = otherData;
+            }
+            return MenuOptionData;
+        }());
+        UI.MenuOptionData = MenuOptionData;
+        var Menu = /** @class */ (function () {
+            function Menu(data, labels, defaultStyle, selectedStyle, selectionDelay) {
+                if (selectionDelay === void 0) { selectionDelay = 250; }
+                this.data = data;
+                this.labels = labels;
+                this.defaultStyle = defaultStyle;
+                this.selectedStyle = selectedStyle;
+                this.selectionDelay = selectionDelay;
+                this.currentOption = 0;
+                this.currentOption = this.data.defaultOption;
+            }
+            Menu.prototype.selectNext = function () {
+                if (this.data.options.length <= 1)
+                    return;
+                this.clearSelectedOption();
+                this.currentOption++;
+                if (this.currentOption > this.data.options.length - 1)
+                    this.currentOption = 0;
+                this.setSelectedOption();
+            };
+            Menu.prototype.selectPrevious = function () {
+                if (this.data.options.length <= 1)
+                    return;
+                this.clearSelectedOption();
+                this.currentOption--;
+                if (this.currentOption < 0)
+                    this.currentOption = this.data.options.length - 1;
+                this.setSelectedOption();
+            };
+            Menu.prototype.executeSelection = function () {
+                this.data.options[this.currentOption].onSelection();
+            };
+            Menu.prototype.clearSelectedOption = function () {
+                this.labels[this.currentOption].setStyle(this.defaultStyle);
+            };
+            Menu.prototype.setSelectedOption = function () {
+                this.labels[this.currentOption].setStyle(this.selectedStyle);
+            };
+            return Menu;
+        }());
+        UI.Menu = Menu;
+        var MenuFactory = /** @class */ (function () {
+            function MenuFactory(game, defaultStyle, selectedStyle) {
+                this.game = game;
+                this.defaultStyle = defaultStyle;
+                this.selectedStyle = selectedStyle;
+            }
+            MenuFactory.prototype.create = function (menuData) {
+                var menuLabels = [];
+                for (var _i = 0, _a = menuData.options; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    var newText = this.game.add.text(current.screenX, current.screenY, current.optionText);
+                    newText.mousedown = current.onSelection;
+                    menuLabels.push(newText);
+                }
+                var result = new Menu(menuData, menuLabels, this.defaultStyle, this.selectedStyle);
+                return result;
+            };
+            return MenuFactory;
+        }());
+        UI.MenuFactory = MenuFactory;
+    })(UI = Main.UI || (Main.UI = {}));
 })(Main || (Main = {}));
 //# sourceMappingURL=fullapp.js.map

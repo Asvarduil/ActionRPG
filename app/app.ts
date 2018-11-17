@@ -4,6 +4,8 @@ namespace Main {
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
 
+    export var menuFactory: UI.MenuFactory = null;
+
     export class App {
         public game: Phaser.Game = null;
 
@@ -14,17 +16,42 @@ namespace Main {
                 'content'
             );
 
-            mapService = new Services.MapService(this.game);
+            this.registerFactories();
+            this.registerServices();
             this.registerStates();
 
-            stateService.startFirstState();
+            this.appStart();
+        }
+
+        private registerServices(): void {
+            mapService = new Services.MapService(this.game);
+            stateService = new Services.StateService(this.game);
+        }
+
+        private registerFactories(): void {
+            const defaultStyle = {
+                fill: '#FFF'
+            };
+            const selectedStyle = {
+                fill: '#FF3'
+            };
+            menuFactory = new UI.MenuFactory(
+                this.game,
+                defaultStyle,
+                selectedStyle
+            );
+
+
         }
 
         private registerStates(): void {
-            stateService = new Services.StateService(this.game);
+            stateService.addState('title', Main.States.TitleState);
             stateService.addState('game', Main.States.GameState);
-
             stateService.readyStates();
+        }
+
+        private appStart(): void {
+            stateService.startFirstState();
         }
     }
 }

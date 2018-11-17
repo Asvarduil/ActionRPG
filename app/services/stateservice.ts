@@ -23,5 +23,13 @@ namespace Main.Services {
         public startFirstState(): void {
             this.game.state.start(this.states[0].key);
         }
+
+        public load(state: string): void {
+            this.game.state.start(state, true, false);
+        }
+
+        public overlay(state: string): void {
+            this.game.state.start(state, false, false);
+        }
     }
 }
