@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "alwaysStrict": true,
+        "sourceMap": true,
+        "outFile": "./fullapp.js",
+        "typeRoots": [
+            "./node_modules/phaser-ce/typescript"
+        ]
+    },
+    "compileOnSave": true
+}
