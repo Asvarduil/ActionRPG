@@ -3,10 +3,6 @@ namespace Main.States {
         public cursors: Phaser.CursorKeys;
         public mainMenu: UI.Menu;
 
-        public constructor() {
-            super();
-        }
-
         public preload(): void {
 
         }
@@ -15,7 +11,6 @@ namespace Main.States {
             inputService.initialize();
 
             const toGameState = () => {
-                console.log('Pressed!');
                 stateService.load('game');
             };
 
@@ -31,6 +26,10 @@ namespace Main.States {
         }
 
         public update(): void {
+        }
+
+        public shutdown(): void {
+            this.mainMenu.releaseKeyControl();
         }
     }
 }

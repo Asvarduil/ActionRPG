@@ -38,56 +38,50 @@ namespace Main.UI {
         public activate(): void {
             this.isActive = true;
         }
-
-        // public grantKeyControl(cursors: Phaser.CursorKeys, game: Phaser.Game): void {
-        //     cursors.down
-        //         .onDown.add(() => {
-        //             if (! this.isActive)
-        //                 return;
-
-        //             this.selectNext();
-        //         });
-        //     cursors.up
-        //         .onDown.add(() => {
-        //             if (! this.isActive)
-        //                 return;
-                        
-        //             this.selectPrevious();
-        //         });
-        //     game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
-        //         .onDown.add(() => {
-        //             if (! this.isActive)
-        //                 return;
-                        
-        //             this.executeSelection();
-        //         });
-
-            
-        // }
         
+        private nextOptionHandler(): void {
+            if (! this.isActive)
+                return;
+
+            this.selectNext();
+        }
+
+        private lastOptionHandler(): void {
+            if (! this.isActive)
+                return;
+
+            this.selectPrevious();
+        }
+
+        private confirmHandler(): void {
+            if (! this.isActive)
+                return;
+
+            this.executeSelection();
+        }
+
         public grantKeyControl(): void {
             inputService.addHandlerToAxis(
                 "vertical", 
-                () => {
-                    if (! this.isActive)
-                        return;
-
-                    this.selectNext();
-                }, () => {
-                    if (! this.isActive)
-                        return;
-                        
-                    this.selectPrevious();
-                });
+                this.nextOptionHandler.bind(this), 
+                this.lastOptionHandler.bind(this)
+            );
             inputService.addHandlerToAxis(
                 "confirm",
-                () => {
-                    if (! this.isActive)
-                        return;
-                        
-                    this.executeSelection();
-                }
-            )
+                this.confirmHandler.bind(this)
+            );
+        }
+
+        public releaseKeyControl(): void {
+            inputService.removeHandlerFromAxis(
+                'vertical',
+                this.nextOptionHandler,
+                this.lastOptionHandler
+            );
+            inputService.removeHandlerFromAxis(
+                'confirm',
+                this.confirmHandler
+            );
         }
 
         public selectNext(): void {
@@ -106,6 +100,8 @@ namespace Main.UI {
         public selectPrevious(): void {
             if (this.data.options.length <= 1)
                 return;
+
+            console.log('selectPrevious called...');
 
             this.clearSelectedOption();
 

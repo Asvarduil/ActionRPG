@@ -4,8 +4,8 @@ body {
 }
 
 #content {
-    margin-top: 8vh;
-    margin-left: 10%;
+    margin-top: 1vh;
+    margin-left: 1vw;
     display: inline-block;
     border: 1px solid #666;
 }

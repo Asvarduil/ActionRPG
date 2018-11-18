@@ -32,7 +32,7 @@ namespace Main.Services {
             this.addAxis(
                 "vertical",
                 [ this.cursors.down ],
-                [ this.cursors.right ]
+                [ this.cursors.up ]
             );
             this.addAxis(
                 "confirm",
@@ -111,10 +111,45 @@ namespace Main.Services {
             }
 
             if (negativeHandler) {
+                console.log(`Binding handler to ${axis.negativeBindings.length} negative axis controls...`);
                 for (let current of axis.negativeBindings) {
                     bindHandler(current, negativeHandler);
                 }
             }
+        }
+
+        public removeHandlerFromAxis(
+            name: string,
+            positiveHandler?: () => void,
+            negativeHandler?: () => void
+        ): void {
+            if (!positiveHandler && !negativeHandler) {
+                console.error(`addHandlerToAxis requires at least a positive or a negative control handler.`);
+                return;
+            }
+
+            const axis: InputAxis = this.getAxis(name);
+            if (axis == null) {
+                console.error(`Axis ${axis.name} has not been registered in the Input Service.`);
+                return;
+            }
+
+            const removeHandler = (
+                control: (Phaser.Key | Phaser.DeviceButton),
+                handler: () => void
+            ) => {
+                control.onDown.remove(handler);
+            };
+
+            if (positiveHandler)
+                for (let current of axis.positiveBindings) {
+                    removeHandler(current, positiveHandler);
+                }
+
+            if (negativeHandler)
+                for (let current of axis.negativeBindings) {
+                    removeHandler(current, negativeHandler);
+                }
         }
     }
 }

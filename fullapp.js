@@ -1,8 +1,11 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -41,6 +44,7 @@ var Main;
             // TODO: More factories.
         };
         App.prototype.registerStates = function () {
+            Main.stateService.addState('init', Main.States.InitState);
             Main.stateService.addState('title', Main.States.TitleState);
             Main.stateService.addState('game', Main.States.GameState);
             Main.stateService.readyStates();
@@ -80,7 +84,7 @@ var Main;
                 this.axes.length = 0; // Clear the axes...
                 this.cursors = this.game.input.keyboard.createCursorKeys();
                 this.addAxis("horizontal", [this.cursors.right], [this.cursors.left]);
-                this.addAxis("vertical", [this.cursors.down], [this.cursors.right]);
+                this.addAxis("vertical", [this.cursors.down], [this.cursors.up]);
                 this.addAxis("confirm", [this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)], []);
                 this.addAxis("cancel", [this.game.input.keyboard.addKey(Phaser.KeyCode.ESC)], []);
             };
@@ -128,11 +132,36 @@ var Main;
                     }
                 }
                 if (negativeHandler) {
+                    console.log("Binding handler to " + axis.negativeBindings.length + " negative axis controls...");
                     for (var _b = 0, _c = axis.negativeBindings; _b < _c.length; _b++) {
                         var current = _c[_b];
                         bindHandler(current, negativeHandler);
                     }
                 }
+            };
+            InputService.prototype.removeHandlerFromAxis = function (name, positiveHandler, negativeHandler) {
+                if (!positiveHandler && !negativeHandler) {
+                    console.error("addHandlerToAxis requires at least a positive or a negative control handler.");
+                    return;
+                }
+                var axis = this.getAxis(name);
+                if (axis == null) {
+                    console.error("Axis " + axis.name + " has not been registered in the Input Service.");
+                    return;
+                }
+                var removeHandler = function (control, handler) {
+                    control.onDown.remove(handler);
+                };
+                if (positiveHandler)
+                    for (var _i = 0, _a = axis.positiveBindings; _i < _a.length; _i++) {
+                        var current = _a[_i];
+                        removeHandler(current, positiveHandler);
+                    }
+                if (negativeHandler)
+                    for (var _b = 0, _c = axis.negativeBindings; _b < _c.length; _b++) {
+                        var current = _c[_b];
+                        removeHandler(current, negativeHandler);
+                    }
             };
             return InputService;
         }());
@@ -237,17 +266,38 @@ var Main;
 (function (Main) {
     var States;
     (function (States) {
+        var InitState = /** @class */ (function (_super) {
+            __extends(InitState, _super);
+            function InitState() {
+                return _super !== null && _super.apply(this, arguments) || this;
+            }
+            InitState.prototype.preload = function () {
+            };
+            InitState.prototype.create = function () {
+                Main.inputService.initialize();
+                Main.stateService.load('title');
+            };
+            InitState.prototype.update = function () {
+            };
+            return InitState;
+        }(Phaser.State));
+        States.InitState = InitState;
+    })(States = Main.States || (Main.States = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var States;
+    (function (States) {
         var TitleState = /** @class */ (function (_super) {
             __extends(TitleState, _super);
             function TitleState() {
-                return _super.call(this) || this;
+                return _super !== null && _super.apply(this, arguments) || this;
             }
             TitleState.prototype.preload = function () {
             };
             TitleState.prototype.create = function () {
                 Main.inputService.initialize();
                 var toGameState = function () {
-                    console.log('Pressed!');
                     Main.stateService.load('game');
                 };
                 var data = new Main.UI.MenuData([
@@ -258,6 +308,9 @@ var Main;
                 this.mainMenu.grantKeyControl();
             };
             TitleState.prototype.update = function () {
+            };
+            TitleState.prototype.shutdown = function () {
+                this.mainMenu.releaseKeyControl();
             };
             return TitleState;
         }(Phaser.State));
@@ -308,42 +361,28 @@ var Main;
             Menu.prototype.activate = function () {
                 this.isActive = true;
             };
-            // public grantKeyControl(cursors: Phaser.CursorKeys, game: Phaser.Game): void {
-            //     cursors.down
-            //         .onDown.add(() => {
-            //             if (! this.isActive)
-            //                 return;
-            //             this.selectNext();
-            //         });
-            //     cursors.up
-            //         .onDown.add(() => {
-            //             if (! this.isActive)
-            //                 return;
-            //             this.selectPrevious();
-            //         });
-            //     game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
-            //         .onDown.add(() => {
-            //             if (! this.isActive)
-            //                 return;
-            //             this.executeSelection();
-            //         });
-            // }
+            Menu.prototype.nextOptionHandler = function () {
+                if (!this.isActive)
+                    return;
+                this.selectNext();
+            };
+            Menu.prototype.lastOptionHandler = function () {
+                if (!this.isActive)
+                    return;
+                this.selectPrevious();
+            };
+            Menu.prototype.confirmHandler = function () {
+                if (!this.isActive)
+                    return;
+                this.executeSelection();
+            };
             Menu.prototype.grantKeyControl = function () {
-                var _this = this;
-                Main.inputService.addHandlerToAxis("vertical", function () {
-                    if (!_this.isActive)
-                        return;
-                    _this.selectNext();
-                }, function () {
-                    if (!_this.isActive)
-                        return;
-                    _this.selectPrevious();
-                });
-                Main.inputService.addHandlerToAxis("confirm", function () {
-                    if (!_this.isActive)
-                        return;
-                    _this.executeSelection();
-                });
+                Main.inputService.addHandlerToAxis("vertical", this.nextOptionHandler.bind(this), this.lastOptionHandler.bind(this));
+                Main.inputService.addHandlerToAxis("confirm", this.confirmHandler.bind(this));
+            };
+            Menu.prototype.releaseKeyControl = function () {
+                Main.inputService.removeHandlerFromAxis('vertical', this.nextOptionHandler, this.lastOptionHandler);
+                Main.inputService.removeHandlerFromAxis('confirm', this.confirmHandler);
             };
             Menu.prototype.selectNext = function () {
                 if (this.data.options.length <= 1)
@@ -357,6 +396,7 @@ var Main;
             Menu.prototype.selectPrevious = function () {
                 if (this.data.options.length <= 1)
                     return;
+                console.log('selectPrevious called...');
                 this.clearSelectedOption();
                 this.currentOption--;
                 if (this.currentOption < 0)

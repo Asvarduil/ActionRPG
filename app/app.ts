@@ -47,8 +47,9 @@ namespace Main {
         }
 
         private registerStates(): void {
-            stateService.addState('title', Main.States.TitleState);
-            stateService.addState('game', Main.States.GameState);
+            stateService.addState('init', States.InitState);
+            stateService.addState('title', States.TitleState);
+            stateService.addState('game', States.GameState);
             stateService.readyStates();
         }
 
