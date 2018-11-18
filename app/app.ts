@@ -3,6 +3,7 @@
 namespace Main {
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
+    export var inputService: Services.InputService = null;
 
     export var menuFactory: UI.MenuFactory = null;
 
@@ -26,6 +27,7 @@ namespace Main {
         private registerServices(): void {
             mapService = new Services.MapService(this.game);
             stateService = new Services.StateService(this.game);
+            inputService = new Services.InputService(this.game);
         }
 
         private registerFactories(): void {
@@ -41,7 +43,7 @@ namespace Main {
                 selectedStyle
             );
 
-
+            // TODO: More factories.
         }
 
         private registerStates(): void {

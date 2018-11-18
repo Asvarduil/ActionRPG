@@ -1,11 +1,8 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -17,6 +14,7 @@ var Main;
 (function (Main) {
     Main.mapService = null;
     Main.stateService = null;
+    Main.inputService = null;
     Main.menuFactory = null;
     var App = /** @class */ (function () {
         function App() {
@@ -30,6 +28,7 @@ var Main;
         App.prototype.registerServices = function () {
             Main.mapService = new Main.Services.MapService(this.game);
             Main.stateService = new Main.Services.StateService(this.game);
+            Main.inputService = new Main.Services.InputService(this.game);
         };
         App.prototype.registerFactories = function () {
             var defaultStyle = {
@@ -39,6 +38,7 @@ var Main;
                 fill: '#FF3'
             };
             Main.menuFactory = new Main.UI.MenuFactory(this.game, defaultStyle, selectedStyle);
+            // TODO: More factories.
         };
         App.prototype.registerStates = function () {
             Main.stateService.addState('title', Main.States.TitleState);
@@ -55,6 +55,90 @@ var Main;
 window.onload = function () {
     var app = new Main.App();
 };
+var Main;
+(function (Main) {
+    var Services;
+    (function (Services) {
+        var InputAxis = /** @class */ (function () {
+            function InputAxis(name, positiveBindings, negativeBindings) {
+                if (name === void 0) { name = ''; }
+                this.name = name;
+                this.positiveBindings = positiveBindings;
+                this.negativeBindings = negativeBindings;
+            }
+            return InputAxis;
+        }());
+        Services.InputAxis = InputAxis;
+        var InputService = /** @class */ (function () {
+            function InputService(game) {
+                this.game = game;
+                this.axes = [];
+            }
+            // This should only be ran in state create() methods, so that game.input is
+            // set up.
+            InputService.prototype.initialize = function () {
+                this.axes.length = 0; // Clear the axes...
+                this.cursors = this.game.input.keyboard.createCursorKeys();
+                this.addAxis("horizontal", [this.cursors.right], [this.cursors.left]);
+                this.addAxis("vertical", [this.cursors.down], [this.cursors.right]);
+                this.addAxis("confirm", [this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)], []);
+                this.addAxis("cancel", [this.game.input.keyboard.addKey(Phaser.KeyCode.ESC)], []);
+            };
+            InputService.prototype.addAxis = function (name, positiveBindings, negativeBindings) {
+                if (this.getAxis(name) != null) {
+                    console.error("Axis not registered - " + name + " is already registered in the Input Service.");
+                    return;
+                }
+                var axis = new InputAxis(name, positiveBindings, negativeBindings);
+                this.axes.push(axis);
+            };
+            InputService.prototype.getAxis = function (name) {
+                var result = null;
+                for (var _i = 0, _a = this.axes; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    if (current.name !== name)
+                        continue;
+                    result = current;
+                    break;
+                }
+                return result;
+            };
+            InputService.prototype.addHandlerToAxis = function (name, positiveHandler, negativeHandler) {
+                if (!positiveHandler && !negativeHandler) {
+                    console.error("addHandlerToAxis requires at least a positive or a negative control handler.");
+                    return;
+                }
+                var axis = this.getAxis(name);
+                if (axis == null) {
+                    console.error("Axis " + axis.name + " has not been registered in the Input Service.");
+                    return;
+                }
+                var bindHandler = function (control, handler) {
+                    if (control instanceof Phaser.Key) {
+                        control.onDown.add(positiveHandler);
+                    }
+                    else if (control instanceof Phaser.DeviceButton) {
+                        control.onDown.add(positiveHandler);
+                    }
+                };
+                if (positiveHandler) {
+                    for (var _i = 0, _a = axis.positiveBindings; _i < _a.length; _i++) {
+                        var current = _a[_i];
+                        bindHandler(current, positiveHandler);
+                    }
+                }
+                if (negativeHandler) {
+                    for (var _b = 0, _c = axis.negativeBindings; _b < _c.length; _b++) {
+                        var current = _c[_b];
+                        bindHandler(current, negativeHandler);
+                    }
+                }
+            };
+            return InputService;
+        }());
+        Services.InputService = InputService;
+    })(Services = Main.Services || (Main.Services = {}));
+})(Main || (Main = {}));
 var Main;
 (function (Main) {
     var Services;
@@ -127,19 +211,22 @@ var Main;
                 this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
             };
             GameState.prototype.create = function () {
+                var _this = this;
+                Main.inputService.initialize();
                 Main.mapService.createMap('test-map', 'tiles', 16, 4, 4, 3);
                 this.game.physics.startSystem(Phaser.Physics.ARCADE);
-                this.cursors = this.game.input.keyboard.createCursorKeys();
+                Main.inputService.addHandlerToAxis('horizontal', function () {
+                    _this.game.camera.x++;
+                }, function () {
+                    _this.game.camera.x--;
+                });
+                Main.inputService.addHandlerToAxis('vertical', function () {
+                    _this.game.camera.y++;
+                }, function () {
+                    _this.game.camera.y--;
+                });
             };
             GameState.prototype.update = function () {
-                if (this.cursors.left.isDown)
-                    this.game.camera.x--;
-                else if (this.cursors.right.isDown)
-                    this.game.camera.x++;
-                if (this.cursors.up.isDown)
-                    this.game.camera.y--;
-                else if (this.cursors.down.isDown)
-                    this.game.camera.y++;
             };
             return GameState;
         }(Phaser.State));
@@ -158,7 +245,7 @@ var Main;
             TitleState.prototype.preload = function () {
             };
             TitleState.prototype.create = function () {
-                var _this = this;
+                Main.inputService.initialize();
                 var toGameState = function () {
                     console.log('Pressed!');
                     Main.stateService.load('game');
@@ -168,19 +255,7 @@ var Main;
                     new Main.UI.MenuOptionData('Continue', 8, 280, toGameState)
                 ], 0);
                 this.mainMenu = Main.menuFactory.create(data);
-                this.cursors = this.game.input.keyboard.createCursorKeys();
-                this.cursors.down
-                    .onDown.add(function () {
-                    _this.mainMenu.selectNext();
-                });
-                this.cursors.up
-                    .onDown.add(function () {
-                    _this.mainMenu.selectPrevious();
-                });
-                this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
-                    .onDown.add(function () {
-                    _this.mainMenu.executeSelection();
-                });
+                this.mainMenu.grantKeyControl();
             };
             TitleState.prototype.update = function () {
             };
@@ -223,9 +298,53 @@ var Main;
                 this.defaultStyle = defaultStyle;
                 this.selectedStyle = selectedStyle;
                 this.selectionDelay = selectionDelay;
+                this.isActive = true;
                 this.currentOption = 0;
                 this.currentOption = this.data.defaultOption;
             }
+            Menu.prototype.pause = function () {
+                this.isActive = false;
+            };
+            Menu.prototype.activate = function () {
+                this.isActive = true;
+            };
+            // public grantKeyControl(cursors: Phaser.CursorKeys, game: Phaser.Game): void {
+            //     cursors.down
+            //         .onDown.add(() => {
+            //             if (! this.isActive)
+            //                 return;
+            //             this.selectNext();
+            //         });
+            //     cursors.up
+            //         .onDown.add(() => {
+            //             if (! this.isActive)
+            //                 return;
+            //             this.selectPrevious();
+            //         });
+            //     game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
+            //         .onDown.add(() => {
+            //             if (! this.isActive)
+            //                 return;
+            //             this.executeSelection();
+            //         });
+            // }
+            Menu.prototype.grantKeyControl = function () {
+                var _this = this;
+                Main.inputService.addHandlerToAxis("vertical", function () {
+                    if (!_this.isActive)
+                        return;
+                    _this.selectNext();
+                }, function () {
+                    if (!_this.isActive)
+                        return;
+                    _this.selectPrevious();
+                });
+                Main.inputService.addHandlerToAxis("confirm", function () {
+                    if (!_this.isActive)
+                        return;
+                    _this.executeSelection();
+                });
+            };
             Menu.prototype.selectNext = function () {
                 if (this.data.options.length <= 1)
                     return;
@@ -264,11 +383,18 @@ var Main;
             }
             MenuFactory.prototype.create = function (menuData) {
                 var menuLabels = [];
+                var index = 0;
                 for (var _i = 0, _a = menuData.options; _i < _a.length; _i++) {
                     var current = _a[_i];
                     var newText = this.game.add.text(current.screenX, current.screenY, current.optionText);
                     newText.mousedown = current.onSelection;
+                    // This causes the options to render with the appropriate styling.
+                    if (index !== menuData.defaultOption)
+                        newText.setStyle(this.defaultStyle);
+                    else
+                        newText.setStyle(this.selectedStyle);
                     menuLabels.push(newText);
+                    index++;
                 }
                 var result = new Menu(menuData, menuLabels, this.defaultStyle, this.selectedStyle);
                 return result;

@@ -12,6 +12,8 @@ namespace Main.States {
         }
 
         public create(): void {
+            inputService.initialize();
+
             const toGameState = () => {
                 console.log('Pressed!');
                 stateService.load('game');
@@ -25,20 +27,7 @@ namespace Main.States {
                 0
             );
             this.mainMenu = menuFactory.create(data);
-
-            this.cursors = this.game.input.keyboard.createCursorKeys();
-            this.cursors.down
-                .onDown.add(() => {
-                    this.mainMenu.selectNext();
-                });
-            this.cursors.up
-                .onDown.add(() => {
-                    this.mainMenu.selectPrevious();
-                });
-            this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)
-                .onDown.add(() => {
-                    this.mainMenu.executeSelection();
-                });
+            this.mainMenu.grantKeyControl();
         }
 
         public update(): void {

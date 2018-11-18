@@ -8,22 +8,32 @@ namespace Main.States {
         }
 
         public create(): void {
+            inputService.initialize();
             mapService.createMap('test-map', 'tiles', 16, 4, 4, 3);
 
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
-            this.cursors = this.game.input.keyboard.createCursorKeys();
+            
+            inputService.addHandlerToAxis(
+                'horizontal',
+                () => {
+                    this.game.camera.x++;
+                },
+                () => {
+                    this.game.camera.x--;
+                }
+            );
+            inputService.addHandlerToAxis(
+                'vertical',
+                () => {
+                    this.game.camera.y++;
+                },
+                () => {
+                    this.game.camera.y--;
+                }
+            )
         }
 
         public update(): void {
-            if (this.cursors.left.isDown)
-                this.game.camera.x--;
-            else if (this.cursors.right.isDown)
-                this.game.camera.x++;
-
-            if (this.cursors.up.isDown)
-                this.game.camera.y--;
-            else if (this.cursors.down.isDown)
-                this.game.camera.y++;
         }
     }
 }
