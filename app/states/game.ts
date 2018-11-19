@@ -10,7 +10,7 @@ namespace Main.States {
         public create(): void {
             inputService.initialize();
             const map: Services.Map = mapService.createMap('test-map', 'overworld-tiles', 16, 3);
-            
+            map.addCollisionLayer(1, 26, 63);
 
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
             
