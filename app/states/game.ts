@@ -14,24 +14,24 @@ namespace Main.States {
 
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
             
-            inputService.addHandlerToAxis(
-                'horizontal',
-                () => {
-                    this.game.camera.x++;
-                },
-                () => {
-                    this.game.camera.x--;
-                }
-            );
-            inputService.addHandlerToAxis(
-                'vertical',
-                () => {
-                    this.game.camera.y++;
-                },
-                () => {
-                    this.game.camera.y--;
-                }
-            );
+            // inputService.addHandlerToAxis(
+            //     'horizontal',
+            //     () => {
+            //         this.game.camera.x++;
+            //     },
+            //     () => {
+            //         this.game.camera.x--;
+            //     }
+            // );
+            // inputService.addHandlerToAxis(
+            //     'vertical',
+            //     () => {
+            //         this.game.camera.y++;
+            //     },
+            //     () => {
+            //         this.game.camera.y--;
+            //     }
+            // );
         }
 
         public update(): void {
