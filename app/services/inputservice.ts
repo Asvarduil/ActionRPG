@@ -111,7 +111,6 @@ namespace Main.Services {
             }
 
             if (negativeHandler) {
-                console.log(`Binding handler to ${axis.negativeBindings.length} negative axis controls...`);
                 for (let current of axis.negativeBindings) {
                     bindHandler(current, negativeHandler);
                 }

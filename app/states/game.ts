@@ -3,13 +3,14 @@ namespace Main.States {
         public cursors: Phaser.CursorKeys = null;
         
         public preload(): void {
-            this.game.load.image('tiles', 'assets/images/tiles.png');
+            this.game.load.image('overworld-tiles', 'assets/images/tiles.png');
             this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
         }
 
         public create(): void {
             inputService.initialize();
-            mapService.createMap('test-map', 'tiles', 16, 4, 4, 3);
+            const map: Services.Map = mapService.createMap('test-map', 'overworld-tiles', 16, 3);
+            
 
             this.game.physics.startSystem(Phaser.Physics.ARCADE);
             
@@ -30,7 +31,7 @@ namespace Main.States {
                 () => {
                     this.game.camera.y--;
                 }
-            )
+            );
         }
 
         public update(): void {

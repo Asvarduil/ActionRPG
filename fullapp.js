@@ -132,7 +132,6 @@ var Main;
                     }
                 }
                 if (negativeHandler) {
-                    console.log("Binding handler to " + axis.negativeBindings.length + " negative axis controls...");
                     for (var _b = 0, _c = axis.negativeBindings; _b < _c.length; _b++) {
                         var current = _c[_b];
                         bindHandler(current, negativeHandler);
@@ -172,16 +171,46 @@ var Main;
 (function (Main) {
     var Services;
     (function (Services) {
+        var Map = /** @class */ (function () {
+            function Map(map, tileSetKey, tileSize, tileScale) {
+                this.map = map;
+                this.tileSetKey = tileSetKey;
+                this.tileSize = tileSize;
+                this.tileScale = tileScale;
+                this.layers = [];
+                this.map.addTilesetImage(tileSetKey, tileSetKey, tileSize, tileSize);
+                this.addLayer(0);
+            }
+            Map.prototype.addLayer = function (layerIndex) {
+                var newLayer = this.map.createLayer(layerIndex);
+                newLayer.resizeWorld();
+                newLayer.setScale(this.tileScale, this.tileScale);
+                this.layers.push(newLayer);
+                return newLayer;
+            };
+            Map.prototype.addCollisionLayer = function (layerIndex, firstCollisionTileIndex, lastCollisionTileIndex) {
+                if (firstCollisionTileIndex === void 0) { firstCollisionTileIndex = 1; }
+                if (lastCollisionTileIndex === void 0) { lastCollisionTileIndex = 1; }
+                var collisionLayer = this.map.createLayer(layerIndex);
+                var collisionIndices = [];
+                for (var index = firstCollisionTileIndex; index <= lastCollisionTileIndex; index++) {
+                    collisionIndices.push(index);
+                }
+                this.map.setCollision(firstCollisionTileIndex, true, collisionLayer, false);
+                return collisionLayer;
+            };
+            return Map;
+        }());
+        Services.Map = Map;
         var MapService = /** @class */ (function () {
             function MapService(game) {
                 this.game = game;
             }
-            MapService.prototype.createMap = function (tileMapKey, tileSetKey, tileSize, mapTileWidth, mapTileHeight, aspectScale) {
+            MapService.prototype.createMap = function (tileMapKey, tileSetKey, tileSize, tileScale) {
+                if (tileScale === void 0) { tileScale = 1.0; }
                 var map = this.game.add.tilemap(tileMapKey, tileSize, tileSize);
-                map.addTilesetImage(tileSetKey, 'tiles', tileSize, tileSize);
-                var layer = map.createLayer(0);
-                layer.resizeWorld();
-                layer.setScale(aspectScale, aspectScale);
+                var result = new Map(map, tileSetKey, tileSize, tileScale);
+                return result;
             };
             return MapService;
         }());
@@ -236,13 +265,13 @@ var Main;
                 return _this;
             }
             GameState.prototype.preload = function () {
-                this.game.load.image('tiles', 'assets/images/tiles.png');
+                this.game.load.image('overworld-tiles', 'assets/images/tiles.png');
                 this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
             };
             GameState.prototype.create = function () {
                 var _this = this;
                 Main.inputService.initialize();
-                Main.mapService.createMap('test-map', 'tiles', 16, 4, 4, 3);
+                Main.mapService.createMap('test-map', 'overworld-tiles', 16, 3);
                 this.game.physics.startSystem(Phaser.Physics.ARCADE);
                 Main.inputService.addHandlerToAxis('horizontal', function () {
                     _this.game.camera.x++;
