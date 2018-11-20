@@ -14,8 +14,8 @@ namespace Main.Services {
 
         public addLayer(layerIndex: number): Phaser.TilemapLayer {
             const newLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
-            newLayer.resizeWorld();
             newLayer.setScale(this.tileScale, this.tileScale);
+            newLayer.resizeWorld();
 
             this.layers.push(newLayer);
             return newLayer;
@@ -27,6 +27,9 @@ namespace Main.Services {
             lastCollisionTileIndex: number = 1
         ): Phaser.TilemapLayer {
             const collisionLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
+            collisionLayer.setScale(this.tileScale, this.tileScale);
+            collisionLayer.resizeWorld();
+
             const collisionIndices: number[] = [];
             for (let index = firstCollisionTileIndex; index <= lastCollisionTileIndex; index++) {
                 collisionIndices.push(index);

@@ -8,33 +8,21 @@ namespace Main.States {
         }
 
         public create(): void {
-            inputService.initialize();
             const map: Services.Map = mapService.createMap('test-map', 'overworld-tiles', 16, 3);
-            map.addCollisionLayer(1, 26, 63);
+            map.addCollisionLayer(0, 26, 63);
 
-            this.game.physics.startSystem(Phaser.Physics.ARCADE);
-            
-            // inputService.addHandlerToAxis(
-            //     'horizontal',
-            //     () => {
-            //         this.game.camera.x++;
-            //     },
-            //     () => {
-            //         this.game.camera.x--;
-            //     }
-            // );
-            // inputService.addHandlerToAxis(
-            //     'vertical',
-            //     () => {
-            //         this.game.camera.y++;
-            //     },
-            //     () => {
-            //         this.game.camera.y--;
-            //     }
-            // );
+            // this.game.physics.startSystem(Phaser.Physics.ARCADE);
         }
 
         public update(): void {
+            const hAxis = inputService.getAxis('horizontal');
+            const vAxis = inputService.getAxis('vertical');
+            
+            const horizontalAxis: number = hAxis.value();
+            this.game.camera.x += horizontalAxis * 3;
+
+            const verticalAxis = vAxis.value();
+            this.game.camera.y += verticalAxis * 3;
         }
     }
 }

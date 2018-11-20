@@ -1,10 +1,35 @@
 namespace Main.Services {
+    export type InputControl = (Phaser.Key | Phaser.DeviceButton);
+
     export class InputAxis {
         public constructor(
             public name: string = '',
-            public positiveBindings: (Phaser.Key[] | Phaser.DeviceButton[]),
-            public negativeBindings: (Phaser.Key[] | Phaser.DeviceButton[])
+            public positiveBindings: InputControl[],
+            public negativeBindings: InputControl[]
         ) {
+        }
+
+        public value(): number {
+            let result: number = 0;
+
+            const checkBindingContribution = (binding: InputControl, addedValue: number): number => {
+                let contribution: number = 0;
+                if (binding instanceof Phaser.Key || binding instanceof Phaser.DeviceButton)
+                    if (binding.isDown)
+                        contribution = addedValue;
+
+                return contribution;
+            };
+
+            for (let current of this.positiveBindings) {
+                result += checkBindingContribution(current, 1);
+            }
+
+            for (let current of this.negativeBindings) {
+                result += checkBindingContribution(current, -1);
+            }
+
+            return result;
         }
     }
 
