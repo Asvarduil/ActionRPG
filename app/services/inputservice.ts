@@ -31,10 +31,32 @@ namespace Main.Services {
 
             return result;
         }
+
+        public isPressed(): boolean {
+            let result: boolean = false;
+
+            const checkBindingState = (binding: InputControl): boolean => {
+                if (binding instanceof Phaser.Key || binding instanceof Phaser.DeviceButton)
+                    return binding.isDown;
+
+                return false;
+            }
+
+            for (let current of this.positiveBindings) {
+                result = result || checkBindingState(current);
+            }
+
+            for (let current of this.negativeBindings) {
+                result = result || checkBindingState(current);
+            }
+
+            return result;
+        }
     }
 
     export class InputService {
         private cursors: Phaser.CursorKeys;
+        private pad: Phaser.SinglePad;
 
         public axes: InputAxis[] = [];
 
@@ -49,6 +71,7 @@ namespace Main.Services {
             this.axes.length = 0; // Clear the axes...
             this.cursors = this.game.input.keyboard.createCursorKeys();
 
+            // TODO: ...Can we make a factory, and source these bindings from JSON?
             this.addAxis(
                 "horizontal",
                 [ this.cursors.right ],
@@ -60,26 +83,76 @@ namespace Main.Services {
                 [ this.cursors.up ]
             );
             this.addAxis(
+                "dash",
+                [ this.game.input.keyboard.addKey(Phaser.KeyCode.SHIFT) ]
+            );
+            this.addAxis(
+                "attack",
+                [ this.game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR) ]
+            );
+            this.addAxis(
+                "block",
+                [ this.game.input.keyboard.addKey(Phaser.KeyCode.TAB) ]
+            );
+            this.addAxis(
                 "confirm",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER) ],
-                []
+                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER) ]
             );
             this.addAxis(
                 "cancel",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ESC)],
-                []
+                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ESC) ]
             );
+
+            this.pad = this.game.input.gamepad.pad1;
+            this.pad.addCallbacks(this, {
+                onConnect: this.addGamepadSupport
+            });
+        }
+
+        public addGamepadSupport(): void {
+            // TODO: Revise?
+            const dpadUp = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_UP);
+            const dpadDown = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_DOWN);
+            const dpadLeft = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_LEFT);
+            const dpadRight = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_RIGHT);
+            const dpadA = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+            const dpadB = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+            const dpadX = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+            const dpadY = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+            const dpadL2 = this.pad.getButton(Phaser.Gamepad.XBOX360_LEFT_TRIGGER);
+            const dpadR2 = this.pad.getButton(Phaser.Gamepad.XBOX360_RIGHT_TRIGGER);
+
+            this.getAxis('vertical').positiveBindings.push(dpadUp);
+            this.getAxis('vertical').negativeBindings.push(dpadDown);
+            this.getAxis('horizontal').positiveBindings.push(dpadRight);
+            this.getAxis('horizontal').negativeBindings.push(dpadLeft);
+            this.getAxis('dash').positiveBindings.push(dpadX);
+            this.getAxis('confirm').positiveBindings.push(dpadA);
+            this.getAxis('cancel').positiveBindings.push(dpadB);
+            this.getAxis('attack').positiveBindings.push(dpadR2);
+            this.getAxis('block').positiveBindings.push(dpadL2);
         }
 
         public addAxis(
             name: string, 
-            positiveBindings: (Phaser.Key[] | Phaser.DeviceButton[]), 
-            negativeBindings: (Phaser.Key[] | Phaser.DeviceButton[])
+            positiveBindings?: (Phaser.Key[] | Phaser.DeviceButton[]), 
+            negativeBindings?: (Phaser.Key[] | Phaser.DeviceButton[])
         ): void {
             if (this.getAxis(name) != null) {
                 console.error(`Axis not registered - ${name} is already registered in the Input Service.`);
                 return;
             }
+
+            if (!positiveBindings && !negativeBindings) {
+                console.error(`Axis ${name} requires at least a positive or a negative binding to be registered.`);
+                return;
+            }
+
+            if (!positiveBindings)
+                positiveBindings = [];
+
+            if (!negativeBindings)
+                negativeBindings = [];
 
             const axis: InputAxis = new InputAxis(
                 name,

@@ -117,51 +117,58 @@ var Main;
             return Mob;
         }());
         Entities.Mob = Mob;
+    })(Entities = Main.Entities || (Main.Entities = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Entities;
+    (function (Entities) {
         var Player = /** @class */ (function (_super) {
             __extends(Player, _super);
             function Player(game, x, y, imageKey, spriteScale) {
                 var _this = _super.call(this, game, x, y, 16, imageKey, spriteScale, true) || this;
                 _this.speed = new Main.Mechanics.ModifiableStat('speed', 96);
+                _this.health = new Main.Mechanics.HealthSystem(12, _this.onHealed, _this.onHurt, _this.onDeath);
                 return _this;
             }
             Player.prototype.onUpdate = function (deltaTime) {
+                this.speed.clearModifiers();
+                if (Main.inputService.getAxis('dash').isPressed()) {
+                    this.speed.addScaledEffect(0.6);
+                }
                 var hAxis = Main.inputService.getAxis('horizontal').value();
                 var vAxis = Main.inputService.getAxis('vertical').value();
-                if (hAxis > 0) {
-                    this.gameObject.animations.play('walk-right');
-                    this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
-                    this.direction = 1;
-                }
-                else if (hAxis < 0) {
-                    this.gameObject.animations.play('walk-left');
-                    this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
-                    this.direction = 2;
-                }
-                else if (hAxis === 0) {
+                this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
+                this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
+                if (hAxis === 0)
                     if (this.direction === 1)
                         this.gameObject.animations.play('idle-right');
                     else if (this.direction === 2)
                         this.gameObject.animations.play('idle-left');
-                }
-                if (vAxis > 0) {
-                    this.gameObject.animations.play('walk-down');
-                    this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
-                    this.direction = 0;
-                }
-                else if (vAxis < 0) {
-                    this.gameObject.animations.play('walk-up');
-                    this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
-                    this.direction = 3;
-                }
-                else if (vAxis === 0) {
+                if (vAxis === 0)
                     if (this.direction === 0)
                         this.gameObject.animations.play('idle-down');
                     else if (this.direction === 3)
                         this.gameObject.animations.play('idle-up');
+                if (hAxis > 0) {
+                    this.gameObject.animations.play('walk-right');
+                    this.direction = 1;
+                }
+                else if (hAxis < 0) {
+                    this.gameObject.animations.play('walk-left');
+                    this.direction = 2;
+                }
+                if (vAxis > 0) {
+                    this.gameObject.animations.play('walk-down');
+                    this.direction = 0;
+                }
+                else if (vAxis < 0) {
+                    this.gameObject.animations.play('walk-up');
+                    this.direction = 3;
                 }
             };
             return Player;
-        }(Mob));
+        }(Entities.Mob));
         Entities.Player = Player;
     })(Entities = Main.Entities || (Main.Entities = {}));
 })(Main || (Main = {}));
@@ -286,6 +293,23 @@ var Main;
                 }
                 return result;
             };
+            InputAxis.prototype.isPressed = function () {
+                var result = false;
+                var checkBindingState = function (binding) {
+                    if (binding instanceof Phaser.Key || binding instanceof Phaser.DeviceButton)
+                        return binding.isDown;
+                    return false;
+                };
+                for (var _i = 0, _a = this.positiveBindings; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    result = result || checkBindingState(current);
+                }
+                for (var _b = 0, _c = this.negativeBindings; _b < _c.length; _b++) {
+                    var current = _c[_b];
+                    result = result || checkBindingState(current);
+                }
+                return result;
+            };
             return InputAxis;
         }());
         Services.InputAxis = InputAxis;
@@ -301,6 +325,7 @@ var Main;
                 this.cursors = this.game.input.keyboard.createCursorKeys();
                 this.addAxis("horizontal", [this.cursors.right], [this.cursors.left]);
                 this.addAxis("vertical", [this.cursors.down], [this.cursors.up]);
+                this.addAxis("dash", [this.game.input.keyboard.addKey(Phaser.KeyCode.SHIFT)], []);
                 this.addAxis("confirm", [this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER)], []);
                 this.addAxis("cancel", [this.game.input.keyboard.addKey(Phaser.KeyCode.ESC)], []);
             };
