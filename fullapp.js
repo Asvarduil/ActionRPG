@@ -61,6 +61,203 @@ window.onload = function () {
 };
 var Main;
 (function (Main) {
+    var Entities;
+    (function (Entities) {
+        var EntityDirections;
+        (function (EntityDirections) {
+            EntityDirections[EntityDirections["DOWN"] = 0] = "DOWN";
+            EntityDirections[EntityDirections["LEFT"] = 1] = "LEFT";
+            EntityDirections[EntityDirections["RIGHT"] = 2] = "RIGHT";
+            EntityDirections[EntityDirections["UP"] = 3] = "UP";
+        })(EntityDirections = Entities.EntityDirections || (Entities.EntityDirections = {}));
+        var Mob = /** @class */ (function () {
+            function Mob(game, x, y, tileSize, imageKey, spriteScale, enablePhysics, frameRate) {
+                if (spriteScale === void 0) { spriteScale = 1; }
+                if (enablePhysics === void 0) { enablePhysics = true; }
+                if (frameRate === void 0) { frameRate = 8; }
+                this.game = game;
+                this.frameRate = frameRate;
+                this.gameObject = null;
+                this.direction = EntityDirections.DOWN;
+                this.health = null;
+                this.speed = null;
+                this.health = new Main.Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
+                this.speed = new Main.Mechanics.ModifiableStat('speed', 48);
+                this.gameObject = game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
+                this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
+                if (enablePhysics)
+                    this.game.physics.arcade.enable(this.gameObject);
+            }
+            Mob.prototype.onHealed = function () {
+            };
+            Mob.prototype.onHurt = function () {
+            };
+            Mob.prototype.onDeath = function () {
+            };
+            Mob.prototype.onUpdate = function (deltaTime) {
+            };
+            Mob.prototype.addAnimationsFromFile = function (jsonKey) {
+                // Data should be pre-loaded with this.game.load.json().
+                var data = this.game.cache.getJSON(jsonKey);
+                var result = [];
+                for (var _i = 0, _a = data.animations; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    var newAnimation = this.addAnimation(current['key'], current['frames'], current['isLooped']);
+                    result.push(newAnimation);
+                }
+                return result;
+            };
+            Mob.prototype.addAnimation = function (key, frames, isLooped) {
+                if (isLooped === void 0) { isLooped = true; }
+                return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
+            };
+            Mob.prototype.bindCamera = function () {
+                this.game.camera.follow(this.gameObject.animations.sprite);
+            };
+            return Mob;
+        }());
+        Entities.Mob = Mob;
+        var Player = /** @class */ (function (_super) {
+            __extends(Player, _super);
+            function Player(game, x, y, imageKey, spriteScale) {
+                var _this = _super.call(this, game, x, y, 16, imageKey, spriteScale, true) || this;
+                _this.speed.value = 76;
+                return _this;
+            }
+            Player.prototype.onUpdate = function (deltaTime) {
+                var hAxis = Main.inputService.getAxis('horizontal').value();
+                var vAxis = Main.inputService.getAxis('vertical').value();
+                if (hAxis > 0) {
+                    this.gameObject.animations.play('walk-right');
+                    this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
+                    this.direction = 1;
+                }
+                else if (hAxis < 0) {
+                    this.gameObject.animations.play('walk-left');
+                    this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
+                    this.direction = 2;
+                }
+                else if (hAxis === 0) {
+                    if (this.direction === 1)
+                        this.gameObject.animations.play('idle-right');
+                    else if (this.direction === 2)
+                        this.gameObject.animations.play('idle-left');
+                }
+                if (vAxis > 0) {
+                    this.gameObject.animations.play('walk-down');
+                    this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
+                    this.direction = 0;
+                }
+                else if (vAxis < 0) {
+                    this.gameObject.animations.play('walk-up');
+                    this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
+                    this.direction = 3;
+                }
+                else if (vAxis === 0) {
+                    if (this.direction === 0)
+                        this.gameObject.animations.play('idle-down');
+                    else if (this.direction === 3)
+                        this.gameObject.animations.play('idle-up');
+                }
+            };
+            return Player;
+        }(Mob));
+        Entities.Player = Player;
+    })(Entities = Main.Entities || (Main.Entities = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Mechanics;
+    (function (Mechanics) {
+        var HealthSystem = /** @class */ (function () {
+            function HealthSystem(maxHP, onHealed, onHurt, onDeath) {
+                this.maxHP = maxHP;
+                this.onHealed = onHealed;
+                this.onHurt = onHurt;
+                this.onDeath = onDeath;
+                this.HP = this.maxHP;
+            }
+            HealthSystem.prototype.heal = function (amount) {
+                if (amount <= 0)
+                    return;
+                var preHealHP = this.HP;
+                this.HP += amount;
+                if (this.HP >= this.workingMaxHP)
+                    this.HP = this.workingMaxHP;
+                var postHealHP = this.HP;
+                if (preHealHP !== postHealHP)
+                    this.onHealed();
+            };
+            HealthSystem.prototype.harm = function (amount) {
+                if (amount <= 0)
+                    return;
+                var preHurtHP = this.HP;
+                this.HP -= amount;
+                if (this.HP <= 0)
+                    this.HP = 0;
+                var postHurtHP = this.HP;
+                if (preHurtHP !== postHurtHP) {
+                    this.onHurt();
+                    this.checkForDeath();
+                }
+            };
+            HealthSystem.prototype.checkForDeath = function () {
+                if (this.HP >= 0)
+                    return;
+                this.onDeath();
+            };
+            HealthSystem.prototype.augment = function (amount) {
+                this.workingMaxHP += amount;
+                if (this.workingMaxHP > this.maxHP)
+                    this.workingMaxHP = this.maxHP;
+            };
+            HealthSystem.prototype.diminish = function (amount) {
+                this.workingMaxHP -= amount;
+                if (this.workingMaxHP > this.HP) {
+                    this.HP = this.workingMaxHP;
+                    this.onHurt();
+                    this.checkForDeath();
+                }
+            };
+            return HealthSystem;
+        }());
+        Mechanics.HealthSystem = HealthSystem;
+    })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Mechanics;
+    (function (Mechanics) {
+        var ModifiableStat = /** @class */ (function () {
+            function ModifiableStat(name, value) {
+                this.name = name;
+                this.value = value;
+                this.scalingModifier = 1.0;
+                this.staticModifier = 0.0;
+            }
+            ModifiableStat.prototype.modifiedValue = function () {
+                return (this.value * this.scalingModifier) + this.staticModifier;
+            };
+            ModifiableStat.prototype.addBaseValue = function (baseChange) {
+                this.value += baseChange;
+            };
+            ModifiableStat.prototype.addScaledEffect = function (scalingChange) {
+                this.scalingModifier += scalingChange;
+            };
+            ModifiableStat.prototype.addStaticEffect = function (staticChange) {
+                this.scalingModifier += staticChange;
+            };
+            ModifiableStat.prototype.clearModifiers = function () {
+                this.scalingModifier = 1.0;
+                this.staticModifier = 0.0;
+            };
+            return ModifiableStat;
+        }());
+        Mechanics.ModifiableStat = ModifiableStat;
+    })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
     var Services;
     (function (Services) {
         var InputAxis = /** @class */ (function () {
@@ -283,27 +480,31 @@ var Main;
             function GameState() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
                 _this.cursors = null;
+                _this.player = null;
                 return _this;
             }
+            // public player: Phaser.TileSprite = null;
+            // public playerDirection: number = 0;
             GameState.prototype.preload = function () {
-                this.game.load.image('overworld-tiles', 'assets/images/tiles.png');
-                this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
             };
             GameState.prototype.create = function () {
                 var map = Main.mapService.createMap('test-map', 'overworld-tiles', 16, 3);
-                map.addCollisionLayer(0, 26, 63);
-                // this.game.physics.startSystem(Phaser.Physics.ARCADE);
+                //map.addCollisionLayer(0, 26, 63);
+                this.player = new Main.Entities.Player(this.game, 96, 96, 'human-template', 3);
+                this.player.addAnimationsFromFile('template-animations');
+                // this.player.addAnimation('idle-down', [0], true);
+                // this.player.addAnimation('idle-up', [4], true);
+                // this.player.addAnimation('idle-left', [12], true);
+                // this.player.addAnimation('idle-right', [8], true);
+                // this.player.addAnimation('walk-down', [0, 1, 2, 3], true);
+                // this.player.addAnimation('walk-up', [4, 5, 6, 7], true);
+                // this.player.addAnimation('walk-left', [12, 13, 14, 15], true);
+                // this.player.addAnimation('walk-right', [8, 9, 10, 11], true);
+                this.player.bindCamera();
             };
             GameState.prototype.update = function () {
-                var hAxis = Main.inputService.getAxis('horizontal');
-                var vAxis = Main.inputService.getAxis('vertical');
-                var horizontalAxis = hAxis.value();
-                this.game.camera.x += horizontalAxis * 3;
-                var verticalAxis = vAxis.value();
-                this.game.camera.y += verticalAxis * 3;
-            };
-            GameState.prototype.render = function () {
-                this.game.debug.cameraInfo(this.game.camera, 32, 32);
+                var deltaTime = this.game.time.physicsElapsed;
+                this.player.onUpdate(deltaTime);
             };
             return GameState;
         }(Phaser.State));
@@ -320,6 +521,10 @@ var Main;
                 return _super !== null && _super.apply(this, arguments) || this;
             }
             InitState.prototype.preload = function () {
+                this.game.load.image('overworld-tiles', 'assets/images/tiles.png');
+                this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
+                this.game.load.spritesheet('human-template', 'assets/images/human-template.png', 16, 16);
+                this.game.load.json('template-animations', 'assets/animations/player-animations.json');
             };
             InitState.prototype.create = function () {
                 Main.inputService.initialize();

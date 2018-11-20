@@ -1,0 +1,44 @@
+{
+    "animations": [
+        {
+            "key": "idle-down",
+            "frames": [0],
+            "isLooped": true
+        },
+        {
+            "key": "idle-left",
+            "frames": [12],
+            "isLooped": true
+        },
+        {
+            "key": "idle-right",
+            "frames": [8],
+            "isLooped": true
+        },
+        {
+            "key": "idle-up",
+            "frames": [4],
+            "isLooped": true
+        },
+        {
+            "key": "walk-down",
+            "frames": [0, 1, 2, 3],
+            "isLooped": true
+        },
+        {
+            "key": "walk-left",
+            "frames": [12, 13, 14, 15],
+            "isLooped": true
+        },
+        {
+            "key": "walk-right",
+            "frames": [8, 9, 10, 11],
+            "isLooped": true
+        },
+        {
+            "key": "walk-up",
+            "frames": [4, 5, 6, 7],
+            "isLooped": true
+        }
+    ]
+}
