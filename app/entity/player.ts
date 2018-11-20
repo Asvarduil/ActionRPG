@@ -76,7 +76,7 @@ namespace Main.Entities {
         ) {
             super(game, x, y, 16, imageKey, spriteScale, true);
 
-            this.speed = new Mechanics.ModifiableStat('speed', 76);
+            this.speed = new Mechanics.ModifiableStat('speed', 96);
         }
 
         public onUpdate(deltaTime: number): void {

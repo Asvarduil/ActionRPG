@@ -10,7 +10,7 @@ namespace Main.States {
             const map: Services.Map = mapService.createMap('test-map', 'overworld-tiles', 16, 3);
             //map.addCollisionLayer(0, 26, 63);
 
-            this.player = new Entities.Player(this.game, 96, 96, 'human-template', 3);
+            this.player = new Entities.Player(this.game, 96, 96, 'hero-male', 3);
             this.player.addAnimationsFromFile('template-animations');
             
             this.player.bindCamera();

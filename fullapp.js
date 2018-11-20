@@ -121,7 +121,7 @@ var Main;
             __extends(Player, _super);
             function Player(game, x, y, imageKey, spriteScale) {
                 var _this = _super.call(this, game, x, y, 16, imageKey, spriteScale, true) || this;
-                _this.speed.value = 76;
+                _this.speed = new Main.Mechanics.ModifiableStat('speed', 96);
                 return _this;
             }
             Player.prototype.onUpdate = function (deltaTime) {
@@ -483,23 +483,13 @@ var Main;
                 _this.player = null;
                 return _this;
             }
-            // public player: Phaser.TileSprite = null;
-            // public playerDirection: number = 0;
             GameState.prototype.preload = function () {
             };
             GameState.prototype.create = function () {
                 var map = Main.mapService.createMap('test-map', 'overworld-tiles', 16, 3);
                 //map.addCollisionLayer(0, 26, 63);
-                this.player = new Main.Entities.Player(this.game, 96, 96, 'human-template', 3);
+                this.player = new Main.Entities.Player(this.game, 96, 96, 'hero-male', 3);
                 this.player.addAnimationsFromFile('template-animations');
-                // this.player.addAnimation('idle-down', [0], true);
-                // this.player.addAnimation('idle-up', [4], true);
-                // this.player.addAnimation('idle-left', [12], true);
-                // this.player.addAnimation('idle-right', [8], true);
-                // this.player.addAnimation('walk-down', [0, 1, 2, 3], true);
-                // this.player.addAnimation('walk-up', [4, 5, 6, 7], true);
-                // this.player.addAnimation('walk-left', [12, 13, 14, 15], true);
-                // this.player.addAnimation('walk-right', [8, 9, 10, 11], true);
                 this.player.bindCamera();
             };
             GameState.prototype.update = function () {
@@ -524,6 +514,7 @@ var Main;
                 this.game.load.image('overworld-tiles', 'assets/images/tiles.png');
                 this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
                 this.game.load.spritesheet('human-template', 'assets/images/human-template.png', 16, 16);
+                this.game.load.spritesheet('hero-male', 'assets/images/hero-male.png', 16, 16);
                 this.game.load.json('template-animations', 'assets/animations/player-animations.json');
             };
             InitState.prototype.create = function () {
