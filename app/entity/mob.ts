@@ -64,5 +64,9 @@ namespace Main.Entities {
         public bindCamera(): void {
             this.game.camera.follow(this.gameObject.animations.sprite);
         }
+
+        public collidesWith(other: any): void {
+            this.game.physics.arcade.collide(this.gameObject, other);
+        }
     }
 }

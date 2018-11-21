@@ -14,7 +14,10 @@ namespace Main {
             this.game = new Phaser.Game(
                 640, 480, 
                 Phaser.CANVAS, 
-                'content'
+                'content',
+                null,
+                false,
+                false
             );
 
             this.registerFactories();

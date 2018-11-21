@@ -8,12 +8,14 @@ namespace Main.States {
 
         public create(): void {
             const map: Services.Map = mapService.createMap('test-map', 'overworld-tiles', 16, 3);
-            //map.addCollisionLayer(0, 26, 63);
+            const collisionLayer = map.addCollisionLayer(1, 26, 63);
+            map.addLayer(2);
 
             this.player = new Entities.Player(this.game, 96, 96, 'hero-male', 3);
             this.player.addAnimationsFromFile('template-animations');
             
             this.player.bindCamera();
+            this.player.collidesWith(collisionLayer);
         }
 
         public update(): void {
