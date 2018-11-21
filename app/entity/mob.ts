@@ -19,18 +19,25 @@ namespace Main.Entities {
             y: number,
             tileSize: number,
             imageKey: string,
+            animationKey: string,
             spriteScale: number = 1,
             enablePhysics: boolean = true,
             private frameRate: number = 8
         ) {
-            this.health = new Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
-            this.speed = new Mechanics.ModifiableStat('speed', 48);
             this.skillLines = skillLineFactory.generateSkillLines();
 
+            // Default stats; these should be overwritten by each type of mob.
+            this.health = new Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
+            this.speed = new Mechanics.ModifiableStat('speed', 48);
+
+            // Create the actual game object for the mob.
             this.gameObject = game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
             this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
             if (enablePhysics)
                 game.physics.arcade.enable(this.gameObject);
+
+            // Bind animations...
+            this.addAnimationsFromFile(animationKey);
         }
 
         public onHealed(): void {
@@ -43,6 +50,15 @@ namespace Main.Entities {
         }
 
         public onUpdate(deltaTime: number): void {
+        }
+
+        public setStatsFromFile(entityTypeName: string): void {
+            const data = game.cache.getJSON('entity-stats');
+            const stats: any = data["entities"].getByName(entityTypeName);
+
+            // Overwrite stats based on the data for the type of mob.
+            this.health = new Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
+            this.speed = new Mechanics.ModifiableStat("speed", stats["speed"]);
         }
 
         public addAnimationsFromFile(jsonKey: string): Phaser.Animation[] {
@@ -68,6 +84,12 @@ namespace Main.Entities {
 
         public collidesWith(other: any): void {
             game.physics.arcade.collide(this.gameObject, other);
+        }
+
+        public setMapCollisions(map: Services.Map): void {
+            for (let current of map.collisionLayers) {
+                game.physics.arcade.collide(current);
+            }
         }
     }
 }

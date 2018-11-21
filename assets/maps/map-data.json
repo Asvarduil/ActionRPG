@@ -1,0 +1,22 @@
+{
+    "maps": [
+        {
+            "name": "overworld",
+            "key": "test-map",
+            "tilesetKey": "overworld-tiles",
+            "tileSize": 16,
+            "tileScale": 3,
+            "layers": [
+                {
+                    "index": 1,
+                    "type": "collision",
+                    "startCollideIndex": 26,
+                    "endCollideIndex": 63
+                },
+                {
+                    "index": 2
+                }
+            ]
+        }
+    ]
+}

@@ -75,7 +75,7 @@ var Main;
             EntityDirections[EntityDirections["UP"] = 3] = "UP";
         })(EntityDirections = Entities.EntityDirections || (Entities.EntityDirections = {}));
         var Mob = /** @class */ (function () {
-            function Mob(x, y, tileSize, imageKey, spriteScale, enablePhysics, frameRate) {
+            function Mob(x, y, tileSize, imageKey, animationKey, spriteScale, enablePhysics, frameRate) {
                 if (spriteScale === void 0) { spriteScale = 1; }
                 if (enablePhysics === void 0) { enablePhysics = true; }
                 if (frameRate === void 0) { frameRate = 8; }
@@ -85,13 +85,17 @@ var Main;
                 this.health = null;
                 this.speed = null;
                 this.skillLines = [];
+                this.skillLines = Main.skillLineFactory.generateSkillLines();
+                // Default stats; these should be overwritten by each type of mob.
                 this.health = new Main.Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
                 this.speed = new Main.Mechanics.ModifiableStat('speed', 48);
-                this.skillLines = Main.skillLineFactory.generateSkillLines();
+                // Create the actual game object for the mob.
                 this.gameObject = Main.game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
                 this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
                 if (enablePhysics)
                     Main.game.physics.arcade.enable(this.gameObject);
+                // Bind animations...
+                this.addAnimationsFromFile(animationKey);
             }
             Mob.prototype.onHealed = function () {
             };
@@ -100,6 +104,13 @@ var Main;
             Mob.prototype.onDeath = function () {
             };
             Mob.prototype.onUpdate = function (deltaTime) {
+            };
+            Mob.prototype.setStatsFromFile = function (entityTypeName) {
+                var data = Main.game.cache.getJSON('entity-stats');
+                var stats = data["entities"].getByName(entityTypeName);
+                // Overwrite stats based on the data for the type of mob.
+                this.health = new Main.Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
+                this.speed = new Main.Mechanics.ModifiableStat("speed", stats["speed"]);
             };
             Mob.prototype.addAnimationsFromFile = function (jsonKey) {
                 // Data should be pre-loaded with this.game.load.json().
@@ -122,6 +133,12 @@ var Main;
             Mob.prototype.collidesWith = function (other) {
                 Main.game.physics.arcade.collide(this.gameObject, other);
             };
+            Mob.prototype.setMapCollisions = function (map) {
+                for (var _i = 0, _a = map.collisionLayers; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    Main.game.physics.arcade.collide(current);
+                }
+            };
             return Mob;
         }());
         Entities.Mob = Mob;
@@ -133,11 +150,12 @@ var Main;
     (function (Entities) {
         var Player = /** @class */ (function (_super) {
             __extends(Player, _super);
-            function Player(x, y, imageKey, spriteScale) {
-                var _this = _super.call(this, x, y, 16, imageKey, spriteScale, true) || this;
-                _this.speed = new Main.Mechanics.ModifiableStat('speed', 96);
-                _this.health = new Main.Mechanics.HealthSystem(12, _this.onHealed, _this.onHurt, _this.onDeath);
+            function Player(x, y, imageKey, animationKey, spriteScale) {
+                var _this = _super.call(this, x, y, 16, imageKey, animationKey, spriteScale, true) || this;
+                _this.setStatsFromFile('player');
                 return _this;
+                // TODO: Overwrite the defaults with stats from the player state store instead.
+                //       This will also cover skill line levels, and other things.
             }
             Player.prototype.onUpdate = function (deltaTime) {
                 this.checkForDashing();
@@ -158,8 +176,6 @@ var Main;
                 }
             };
             Player.prototype.selectAnimation = function (hAxis, vAxis) {
-                // TODO: Fix my animations to point to the correct frames, so I can fix
-                // the animation logic below.
                 if (hAxis === 0)
                     if (this.direction === Entities.EntityDirections.RIGHT)
                         this.gameObject.animations.play('idle-right');
@@ -174,11 +190,11 @@ var Main;
             Player.prototype.performMovement = function (hAxis, vAxis) {
                 if (hAxis > 0) {
                     this.gameObject.animations.play('walk-right');
-                    this.direction = Entities.EntityDirections.LEFT;
+                    this.direction = Entities.EntityDirections.RIGHT;
                 }
                 else if (hAxis < 0) {
                     this.gameObject.animations.play('walk-left');
-                    this.direction = Entities.EntityDirections.RIGHT;
+                    this.direction = Entities.EntityDirections.LEFT;
                 }
                 if (vAxis > 0) {
                     this.gameObject.animations.play('walk-down');
@@ -547,13 +563,14 @@ var Main;
                 this.tileSize = tileSize;
                 this.tileScale = tileScale;
                 this.layers = [];
+                this.collisionLayers = [];
                 this.map.addTilesetImage(tileSetKey, tileSetKey, tileSize, tileSize);
-                this.addLayer(0);
+                var firstLayer = this.addLayer(0);
+                firstLayer.resizeWorld();
             }
             Map.prototype.addLayer = function (layerIndex) {
                 var newLayer = this.map.createLayer(layerIndex);
                 newLayer.setScale(this.tileScale, this.tileScale);
-                newLayer.resizeWorld();
                 this.layers.push(newLayer);
                 return newLayer;
             };
@@ -562,13 +579,11 @@ var Main;
                 if (lastCollisionTileIndex === void 0) { lastCollisionTileIndex = 1; }
                 var collisionLayer = this.map.createLayer(layerIndex);
                 collisionLayer.setScale(this.tileScale, this.tileScale);
-                collisionLayer.resizeWorld();
-                var collisionIndices = [];
-                for (var index = firstCollisionTileIndex; index <= lastCollisionTileIndex; index++) {
-                    collisionIndices.push(index);
-                }
-                this.map.setCollision(collisionIndices, true, collisionLayer, false);
+                Main.game.add.existing(collisionLayer);
                 Main.game.physics.arcade.enable(collisionLayer);
+                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
+                this.layers.push(collisionLayer);
+                this.collisionLayers.push(collisionLayer);
                 return collisionLayer;
             };
             return Map;
@@ -577,10 +592,25 @@ var Main;
         var MapService = /** @class */ (function () {
             function MapService() {
             }
-            MapService.prototype.createMap = function (tileMapKey, tileSetKey, tileSize, tileScale) {
-                if (tileScale === void 0) { tileScale = 1.0; }
-                var map = Main.game.add.tilemap(tileMapKey, tileSize, tileSize);
-                var result = new Map(map, tileSetKey, tileSize, tileScale);
+            MapService.prototype.loadMap = function (key) {
+                var data = Main.game.cache.getJSON('map-data');
+                var generationData = data['maps'].getByName(key);
+                // Create the general map from the data...
+                var tileSize = generationData["tileSize"];
+                var map = Main.game.add.tilemap(generationData["key"], tileSize, tileSize);
+                var result = new Map(map, generationData["tilesetKey"], tileSize, generationData["tileScale"]);
+                // Build layers from data...
+                for (var _i = 0, _a = generationData["layers"]; _i < _a.length; _i++) {
+                    var currentLayer = _a[_i];
+                    if (currentLayer["type"]) {
+                        if (currentLayer["type"].toLowerCase() == "collision") {
+                            result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
+                        }
+                    }
+                    else {
+                        result.addLayer(currentLayer["index"]);
+                    }
+                }
                 return result;
             };
             return MapService;
@@ -631,6 +661,7 @@ var Main;
             __extends(GameState, _super);
             function GameState() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
+                _this.map = null;
                 _this.cursors = null;
                 _this.player = null;
                 return _this;
@@ -638,17 +669,14 @@ var Main;
             GameState.prototype.preload = function () {
             };
             GameState.prototype.create = function () {
-                var map = Main.mapService.createMap('test-map', 'overworld-tiles', 16, 3);
-                var collisionLayer = map.addCollisionLayer(1, 26, 63);
-                map.addLayer(2);
-                this.player = new Main.Entities.Player(96, 96, 'hero-male', 3);
-                this.player.addAnimationsFromFile('template-animations');
+                this.map = Main.mapService.loadMap('overworld');
+                this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
                 this.player.bindCamera();
-                this.player.collidesWith(collisionLayer);
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;
                 this.player.onUpdate(deltaTime);
+                this.player.setMapCollisions(this.map);
             };
             return GameState;
         }(Phaser.State));
@@ -666,11 +694,17 @@ var Main;
             }
             InitState.prototype.preload = function () {
                 Main.game.load.image('overworld-tiles', 'assets/images/tiles.png');
-                //this.game.load.tilemap('test-map', 'assets/maps/overworld.csv', null, Phaser.Tilemap.CSV);
                 Main.game.load.tilemap('test-map', 'assets/maps/test-3.json', null, Phaser.Tilemap.TILED_JSON);
                 Main.game.load.spritesheet('human-template', 'assets/images/human-template.png', 16, 16);
                 Main.game.load.spritesheet('hero-male', 'assets/images/hero-male.png', 16, 16);
-                Main.game.load.json('template-animations', 'assets/animations/player-animations.json');
+                // Used by the Map Service to build maps on the fly without hardcoding every single map.
+                Main.game.load.json('map-data', 'assets/maps/map-data.json');
+                // Used by the Entity system to set up mob stats, also without hardcoding every single one.
+                Main.game.load.json('entity-stats', 'assets/entities/entities.json');
+                // Used by various Mobs to set up their animations, again without hardcoding every single one.
+                Main.game.load.json('template-animations', 'assets/animations/template-animations.json');
+                Main.game.load.json('player-animations', 'assets/animations/player-animations.json');
+                // Used by the Skill Line factory, to ensure that all mobs have the same skill lines.
                 Main.game.load.json('skill-line-defaults', 'assets/mechanics/skill-line-defaults.json');
             };
             InitState.prototype.create = function () {

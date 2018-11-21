@@ -1,6 +1,7 @@
 namespace Main.Services {
     export class Map {
         public layers: Phaser.TilemapLayer[] = [];
+        public collisionLayers: Phaser.TilemapLayer[] = [];
 
         public constructor(
             public map: Phaser.Tilemap,
@@ -9,13 +10,13 @@ namespace Main.Services {
             public tileScale: number
         ) {
             this.map.addTilesetImage(tileSetKey, tileSetKey, tileSize, tileSize);
-            this.addLayer(0);
+            const firstLayer = this.addLayer(0);
+            firstLayer.resizeWorld();
         }
 
         public addLayer(layerIndex: number): Phaser.TilemapLayer {
             const newLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
             newLayer.setScale(this.tileScale, this.tileScale);
-            newLayer.resizeWorld();
 
             this.layers.push(newLayer);
             return newLayer;
@@ -28,15 +29,14 @@ namespace Main.Services {
         ): Phaser.TilemapLayer {
             const collisionLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
             collisionLayer.setScale(this.tileScale, this.tileScale);
-            collisionLayer.resizeWorld();
 
-            const collisionIndices: number[] = [];
-            for (let index = firstCollisionTileIndex; index <= lastCollisionTileIndex; index++) {
-                collisionIndices.push(index);
-            }
-            this.map.setCollision(collisionIndices, true, collisionLayer, false);
-            
+            game.add.existing(collisionLayer);
             game.physics.arcade.enable(collisionLayer);
+
+            this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
+            
+            this.layers.push(collisionLayer);
+            this.collisionLayers.push(collisionLayer);
 
             return collisionLayer;
         }
@@ -47,14 +47,28 @@ namespace Main.Services {
         ) {
         }
 
-        public createMap(
-            tileMapKey: string,
-            tileSetKey: string,
-            tileSize: number,
-            tileScale: number = 1.0
+        public loadMap(
+            key: string
         ): Map {
-            const map: Phaser.Tilemap = game.add.tilemap(tileMapKey, tileSize, tileSize);
-            const result: Map = new Map(map, tileSetKey, tileSize, tileScale);
+            const data: any = game.cache.getJSON('map-data');
+            const generationData = data['maps'].getByName(key);
+
+            // Create the general map from the data...
+            const tileSize: number = generationData["tileSize"];
+            const map: Phaser.Tilemap = game.add.tilemap(generationData["key"], tileSize, tileSize);
+            const result: Map = new Map(map, generationData["tilesetKey"], tileSize, generationData["tileScale"]);
+
+            // Build layers from data...
+            for (let currentLayer of generationData["layers"]) {
+                if (currentLayer["type"]) {
+                    if (currentLayer["type"].toLowerCase() == "collision") {
+                        result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
+                    }
+                } else {
+                    result.addLayer(currentLayer["index"]);
+                }
+            }
+            
             return result;
         }
     }

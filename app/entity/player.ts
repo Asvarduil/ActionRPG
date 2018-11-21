@@ -4,12 +4,14 @@ namespace Main.Entities {
             x: number,
             y: number,
             imageKey: string,
+            animationKey: string,
             spriteScale: number
         ) {
-            super(x, y, 16, imageKey, spriteScale, true);
+            super(x, y, 16, imageKey, animationKey, spriteScale, true);
 
-            this.speed = new Mechanics.ModifiableStat('speed', 96);
-            this.health = new Mechanics.HealthSystem(12, this.onHealed, this.onHurt, this.onDeath);
+            this.setStatsFromFile('player');
+            // TODO: Overwrite the defaults with stats from the player state store instead.
+            //       This will also cover skill line levels, and other things.
         }
 
         public onUpdate(deltaTime: number): void {
@@ -36,8 +38,6 @@ namespace Main.Entities {
         }
 
         private selectAnimation(hAxis: number, vAxis: number): void {
-            // TODO: Fix my animations to point to the correct frames, so I can fix
-            // the animation logic below.
             if (hAxis === 0)
                 if (this.direction === EntityDirections.RIGHT)
                     this.gameObject.animations.play('idle-right');
@@ -53,10 +53,10 @@ namespace Main.Entities {
         private performMovement(hAxis: number, vAxis: number): void {
             if (hAxis > 0) {
                 this.gameObject.animations.play('walk-right');
-                this.direction = EntityDirections.LEFT;
+                this.direction = EntityDirections.RIGHT;
             } else if (hAxis < 0) {
                 this.gameObject.animations.play('walk-left');
-                this.direction = EntityDirections.RIGHT;
+                this.direction = EntityDirections.LEFT;
             }
 
             if (vAxis > 0) {
