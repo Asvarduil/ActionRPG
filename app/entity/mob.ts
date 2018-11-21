@@ -12,9 +12,9 @@ namespace Main.Entities {
 
         public health: Mechanics.HealthSystem = null;
         public speed: Mechanics.ModifiableStat = null;
+        public skillLines: Mechanics.SkillLine[] = [];
 
         public constructor(
-            private game: Phaser.Game,
             x: number,
             y: number,
             tileSize: number,
@@ -25,11 +25,12 @@ namespace Main.Entities {
         ) {
             this.health = new Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
             this.speed = new Mechanics.ModifiableStat('speed', 48);
+            this.skillLines = skillLineFactory.generateSkillLines();
 
             this.gameObject = game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
             this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
             if (enablePhysics)
-                this.game.physics.arcade.enable(this.gameObject);
+                game.physics.arcade.enable(this.gameObject);
         }
 
         public onHealed(): void {
@@ -46,7 +47,7 @@ namespace Main.Entities {
 
         public addAnimationsFromFile(jsonKey: string): Phaser.Animation[] {
             // Data should be pre-loaded with this.game.load.json().
-            const data = this.game.cache.getJSON(jsonKey);
+            const data = game.cache.getJSON(jsonKey);
 
             const result: Phaser.Animation[] = [];
             for (let current of data.animations) {
@@ -62,11 +63,11 @@ namespace Main.Entities {
         }
 
         public bindCamera(): void {
-            this.game.camera.follow(this.gameObject.animations.sprite);
+            game.camera.follow(this.gameObject.animations.sprite);
         }
 
         public collidesWith(other: any): void {
-            this.game.physics.arcade.collide(this.gameObject, other);
+            game.physics.arcade.collide(this.gameObject, other);
         }
     }
 }

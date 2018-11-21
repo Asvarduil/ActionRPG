@@ -3,7 +3,6 @@ namespace Main.Services {
         public layers: Phaser.TilemapLayer[] = [];
 
         public constructor(
-            public game: Phaser.Game,
             public map: Phaser.Tilemap,
             public tileSetKey: string,
             public tileSize: number,
@@ -37,7 +36,7 @@ namespace Main.Services {
             }
             this.map.setCollision(collisionIndices, true, collisionLayer, false);
             
-            this.game.physics.arcade.enable(collisionLayer);
+            game.physics.arcade.enable(collisionLayer);
 
             return collisionLayer;
         }
@@ -45,7 +44,6 @@ namespace Main.Services {
 
     export class MapService {
         public constructor(
-            public game: Phaser.Game
         ) {
         }
 
@@ -55,8 +53,8 @@ namespace Main.Services {
             tileSize: number,
             tileScale: number = 1.0
         ): Map {
-            const map: Phaser.Tilemap = this.game.add.tilemap(tileMapKey, tileSize, tileSize);
-            const result: Map = new Map(this.game, map, tileSetKey, tileSize, tileScale);
+            const map: Phaser.Tilemap = game.add.tilemap(tileMapKey, tileSize, tileSize);
+            const result: Map = new Map(map, tileSetKey, tileSize, tileScale);
             return result;
         }
     }

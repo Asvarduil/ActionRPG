@@ -3,7 +3,7 @@ namespace Main.Services {
         public states: { key: string, state: any}[] = [];
 
         public constructor(
-            public game: Phaser.Game = null
+            private game: Phaser.Game
         ) {
         }
 

@@ -1,7 +1,7 @@
 namespace Main.Services {
     export type InputControl = (Phaser.Key | Phaser.DeviceButton);
 
-    export class InputAxis {
+    export class InputAxis implements INamed {
         public constructor(
             public name: string = '',
             public positiveBindings: InputControl[],
@@ -60,16 +60,14 @@ namespace Main.Services {
 
         public axes: InputAxis[] = [];
 
-        public constructor(
-            private game: Phaser.Game
-        ) {
+        public constructor() {
         }
 
         // This should only be ran in state create() methods, so that game.input is
         // set up.
         public initialize(): void {
             this.axes.length = 0; // Clear the axes...
-            this.cursors = this.game.input.keyboard.createCursorKeys();
+            this.cursors = game.input.keyboard.createCursorKeys();
 
             // TODO: ...Can we make a factory, and source these bindings from JSON?
             this.addAxis(
@@ -84,54 +82,62 @@ namespace Main.Services {
             );
             this.addAxis(
                 "dash",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.SHIFT) ]
+                [ game.input.keyboard.addKey(Phaser.KeyCode.SHIFT) ]
             );
             this.addAxis(
                 "attack",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR) ]
+                [ game.input.keyboard.addKey(Phaser.KeyCode.SPACEBAR) ]
             );
             this.addAxis(
                 "block",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.TAB) ]
+                [ game.input.keyboard.addKey(Phaser.KeyCode.TAB) ]
             );
             this.addAxis(
                 "confirm",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ENTER) ]
+                [ game.input.keyboard.addKey(Phaser.KeyCode.ENTER) ]
             );
             this.addAxis(
                 "cancel",
-                [ this.game.input.keyboard.addKey(Phaser.KeyCode.ESC) ]
+                [ game.input.keyboard.addKey(Phaser.KeyCode.ESC) ]
             );
 
-            this.pad = this.game.input.gamepad.pad1;
-            this.pad.addCallbacks(this, {
-                onConnect: this.addGamepadSupport
-            });
+            // this.pad = this.game.input.gamepad.pad1;
+            // this.pad.addCallbacks(this, {
+            //     onConnect: this.addGamepadSupport
+            // });
         }
 
-        public addGamepadSupport(): void {
-            // TODO: Revise?
-            const dpadUp = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_UP);
-            const dpadDown = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_DOWN);
-            const dpadLeft = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_LEFT);
-            const dpadRight = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_RIGHT);
-            const dpadA = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
-            const dpadB = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
-            const dpadX = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
-            const dpadY = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
-            const dpadL2 = this.pad.getButton(Phaser.Gamepad.XBOX360_LEFT_TRIGGER);
-            const dpadR2 = this.pad.getButton(Phaser.Gamepad.XBOX360_RIGHT_TRIGGER);
+        // public addGamepadSupport(): void {
+        //     const vAxis = this.getAxis('vertical');
+        //     const hAxis = this.getAxis('horizontal');
+        //     const dash = this.getAxis('dash');
+        //     const confirm = this.getAxis('confirm');
+        //     const cancel = this.getAxis('cancel');
+        //     const attack = this.getAxis('attack');
+        //     const block = this.getAxis('block');
 
-            this.getAxis('vertical').positiveBindings.push(dpadUp);
-            this.getAxis('vertical').negativeBindings.push(dpadDown);
-            this.getAxis('horizontal').positiveBindings.push(dpadRight);
-            this.getAxis('horizontal').negativeBindings.push(dpadLeft);
-            this.getAxis('dash').positiveBindings.push(dpadX);
-            this.getAxis('confirm').positiveBindings.push(dpadA);
-            this.getAxis('cancel').positiveBindings.push(dpadB);
-            this.getAxis('attack').positiveBindings.push(dpadR2);
-            this.getAxis('block').positiveBindings.push(dpadL2);
-        }
+        //     // TODO: Detect common gamepad types, and set the gamepad up as appropriate.
+        //     const dpadUp = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_UP);
+        //     const dpadDown = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_DOWN);
+        //     const dpadLeft = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_LEFT);
+        //     const dpadRight = this.pad.getButton(Phaser.Gamepad.XBOX360_DPAD_RIGHT);
+        //     const dpadA = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+        //     const dpadB = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+        //     const dpadX = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+        //     const dpadY = this.pad.getButton(Phaser.Gamepad.XBOX360_A);
+        //     const dpadL2 = this.pad.getButton(Phaser.Gamepad.XBOX360_LEFT_TRIGGER);
+        //     const dpadR2 = this.pad.getButton(Phaser.Gamepad.XBOX360_RIGHT_TRIGGER);
+
+        //     vAxis.positiveBindings.push(dpadUp);
+        //     vAxis.negativeBindings.push(dpadDown);
+        //     hAxis.positiveBindings.push(dpadRight);
+        //     hAxis.negativeBindings.push(dpadLeft);
+        //     dash.positiveBindings.push(dpadX);
+        //     confirm.positiveBindings.push(dpadA);
+        //     cancel.positiveBindings.push(dpadB);
+        //     attack.positiveBindings.push(dpadR2);
+        //     block.positiveBindings.push(dpadL2);
+        // }
 
         public addAxis(
             name: string, 
@@ -163,16 +169,7 @@ namespace Main.Services {
         }
 
         public getAxis(name: string): InputAxis {
-            let result: InputAxis = null;
-            for (let current of this.axes) {
-                if (current.name !== name)
-                    continue;
-
-                result = current;
-                break;
-            }
-
-            return result;
+            return <InputAxis>(this.axes.getByName(name));
         }
 
         public addHandlerToAxis(

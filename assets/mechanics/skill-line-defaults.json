@@ -1,0 +1,11 @@
+{
+    "skillLines": [
+        {
+            "name": "Stamina",
+            "description": "Describes your ability to perform taxing physical feats",
+            "defaultLevel": 1,
+            "defaultXp": 0,
+            "defaultXpToNextLevel": 5
+        }
+    ]
+}

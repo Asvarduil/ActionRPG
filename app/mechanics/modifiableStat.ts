@@ -1,5 +1,5 @@
 namespace Main.Mechanics {
-    export class ModifiableStat {
+    export class ModifiableStat implements INamed {
         public scalingModifier: number = 1.0;
         public staticModifier: number = 0.0;
 

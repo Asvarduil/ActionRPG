@@ -127,7 +127,6 @@ namespace Main.UI {
 
     export class MenuFactory {
         public constructor(
-            public game: Phaser.Game,
             public defaultStyle: Phaser.PhaserTextStyle,
             public selectedStyle: Phaser.PhaserTextStyle
         ) {
@@ -137,7 +136,7 @@ namespace Main.UI {
             let menuLabels: Phaser.Text[] = [];
             let index: number = 0;
             for (let current of menuData.options) {
-                const newText: Phaser.Text = this.game.add.text(
+                const newText: Phaser.Text = game.add.text(
                     current.screenX, 
                     current.screenY,
                     current.optionText

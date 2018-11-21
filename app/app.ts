@@ -1,16 +1,16 @@
 /// <reference path="../node_modules/phaser-ce/typescript/phaser.d.ts" />
 
 namespace Main {
+    export var game: Phaser.Game = null;
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
     export var inputService: Services.InputService = null;
 
     export var menuFactory: UI.MenuFactory = null;
+    export var skillLineFactory: Mechanics.SkillLineFactory = null;
 
     export class App {
-        // TODO: Refactor out to Main namespace, alter all
-        //       the reference passing.
-        public game: Phaser.Game = null;
+        private game: Phaser.Game = null;
 
         public constructor() {
             this.game = new Phaser.Game(
@@ -26,13 +26,15 @@ namespace Main {
             this.registerServices();
             this.registerStates();
 
+            game = this.game;
+
             this.appStart();
         }
 
         private registerServices(): void {
-            mapService = new Services.MapService(this.game);
             stateService = new Services.StateService(this.game);
-            inputService = new Services.InputService(this.game);
+            inputService = new Services.InputService();
+            mapService = new Services.MapService();
         }
 
         private registerFactories(): void {
@@ -43,10 +45,11 @@ namespace Main {
                 fill: '#FF3'
             };
             menuFactory = new UI.MenuFactory(
-                this.game,
                 defaultStyle,
                 selectedStyle
             );
+
+            skillLineFactory = new Mechanics.SkillLineFactory();
 
             // TODO: More factories.
         }
