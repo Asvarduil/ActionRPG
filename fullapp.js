@@ -161,9 +161,9 @@ var Main;
                 // TODO: Fix my animations to point to the correct frames, so I can fix
                 // the animation logic below.
                 if (hAxis === 0)
-                    if (this.direction === Entities.EntityDirections.LEFT)
+                    if (this.direction === Entities.EntityDirections.RIGHT)
                         this.gameObject.animations.play('idle-right');
-                    else if (this.direction === Entities.EntityDirections.RIGHT)
+                    else if (this.direction === Entities.EntityDirections.LEFT)
                         this.gameObject.animations.play('idle-left');
                 if (vAxis === 0)
                     if (this.direction === Entities.EntityDirections.DOWN)

@@ -39,9 +39,9 @@ namespace Main.Entities {
             // TODO: Fix my animations to point to the correct frames, so I can fix
             // the animation logic below.
             if (hAxis === 0)
-                if (this.direction === EntityDirections.LEFT)
+                if (this.direction === EntityDirections.RIGHT)
                     this.gameObject.animations.play('idle-right');
-                else if (this.direction === EntityDirections.RIGHT)
+                else if (this.direction === EntityDirections.LEFT)
                     this.gameObject.animations.play('idle-left');
             if (vAxis === 0)
                 if (this.direction === EntityDirections.DOWN)
