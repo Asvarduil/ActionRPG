@@ -8,6 +8,8 @@ namespace Main {
     export var menuFactory: UI.MenuFactory = null;
 
     export class App {
+        // TODO: Refactor out to Main namespace, alter all
+        //       the reference passing.
         public game: Phaser.Game = null;
 
         public constructor() {
