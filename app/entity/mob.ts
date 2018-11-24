@@ -78,10 +78,6 @@ namespace Main.Entities {
             return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
         }
 
-        public bindCamera(): void {
-            game.camera.follow(this.gameObject.animations.sprite);
-        }
-
         public collidesWith(other: any): void {
             game.physics.arcade.collide(this.gameObject, other);
         }

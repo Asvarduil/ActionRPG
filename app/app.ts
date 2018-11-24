@@ -5,6 +5,7 @@ namespace Main {
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
     export var inputService: Services.InputService = null;
+    export var cameraService: Services.CameraService = null;
 
     export var menuFactory: UI.MenuFactory = null;
     export var skillLineFactory: Mechanics.SkillLineFactory = null;
@@ -35,6 +36,7 @@ namespace Main {
             stateService = new Services.StateService(this.game);
             inputService = new Services.InputService();
             mapService = new Services.MapService();
+            cameraService = new Services.CameraService();
         }
 
         private registerFactories(): void {

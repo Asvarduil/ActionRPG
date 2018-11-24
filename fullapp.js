@@ -19,6 +19,7 @@ var Main;
     Main.mapService = null;
     Main.stateService = null;
     Main.inputService = null;
+    Main.cameraService = null;
     Main.menuFactory = null;
     Main.skillLineFactory = null;
     var App = /** @class */ (function () {
@@ -35,6 +36,7 @@ var Main;
             Main.stateService = new Main.Services.StateService(this.game);
             Main.inputService = new Main.Services.InputService();
             Main.mapService = new Main.Services.MapService();
+            Main.cameraService = new Main.Services.CameraService();
         };
         App.prototype.registerFactories = function () {
             var defaultStyle = {
@@ -126,9 +128,6 @@ var Main;
             Mob.prototype.addAnimation = function (key, frames, isLooped) {
                 if (isLooped === void 0) { isLooped = true; }
                 return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
-            };
-            Mob.prototype.bindCamera = function () {
-                Main.game.camera.follow(this.gameObject.animations.sprite);
             };
             Mob.prototype.collidesWith = function (other) {
                 Main.game.physics.arcade.collide(this.gameObject, other);
@@ -371,6 +370,25 @@ var Main;
         }());
         Mechanics.SkillLineFactory = SkillLineFactory;
     })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Services;
+    (function (Services) {
+        var CameraService = /** @class */ (function () {
+            function CameraService() {
+            }
+            CameraService.prototype.bindCamera = function (mob) {
+                Main.game.camera.follow(mob.gameObject.animations.sprite);
+            };
+            CameraService.prototype.pan = function (x, y) {
+                Main.game.camera.x += x;
+                Main.game.camera.y += y;
+            };
+            return CameraService;
+        }());
+        Services.CameraService = CameraService;
+    })(Services = Main.Services || (Main.Services = {}));
 })(Main || (Main = {}));
 var Main;
 (function (Main) {
@@ -671,7 +689,7 @@ var Main;
             GameState.prototype.create = function () {
                 this.map = Main.mapService.loadMap('overworld');
                 this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
-                this.player.bindCamera();
+                Main.cameraService.bindCamera(this.player);
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;

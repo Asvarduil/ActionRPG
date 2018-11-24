@@ -11,7 +11,7 @@ namespace Main.States {
             this.map  = mapService.loadMap('overworld');
 
             this.player = new Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
-            this.player.bindCamera();
+            cameraService.bindCamera(this.player);
         }
 
         public update(): void {
