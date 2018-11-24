@@ -11,7 +11,9 @@ namespace Main.States {
             inputService.initialize();
 
             const toGameState = () => {
-                stateService.load('game');
+                cameraService.fadeOut(() => { 
+                    stateService.load('game');
+                });
             };
 
             const data = new UI.MenuData(

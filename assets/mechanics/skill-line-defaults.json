@@ -1,7 +1,7 @@
 {
     "skillLines": [
         {
-            "name": "Stamina",
+            "name": "Conditioning",
             "description": "Describes your ability to perform taxing physical feats",
             "defaultLevel": 1,
             "defaultXp": 0,

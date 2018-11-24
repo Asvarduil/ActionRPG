@@ -11,7 +11,7 @@ namespace Main.Entities {
         public direction: EntityDirections = EntityDirections.DOWN;
 
         public health: Mechanics.HealthSystem = null;
-        public speed: Mechanics.ModifiableStat = null;
+        public stats: Mechanics.ModifiableStat[] = [];
         public skillLines: Mechanics.SkillLine[] = [];
 
         public constructor(
@@ -28,13 +28,14 @@ namespace Main.Entities {
 
             // Default stats; these should be overwritten by each type of mob.
             this.health = new Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
-            this.speed = new Mechanics.ModifiableStat('speed', 48);
-
+            
             // Create the actual game object for the mob.
             this.gameObject = game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
             this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
-            if (enablePhysics)
+            if (enablePhysics) {
                 game.physics.arcade.enable(this.gameObject);
+                this.gameObject.body.tilePadding.set(32, 32);
+            }
 
             // Bind animations...
             this.addAnimationsFromFile(animationKey);
@@ -58,7 +59,14 @@ namespace Main.Entities {
 
             // Overwrite stats based on the data for the type of mob.
             this.health = new Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-            this.speed = new Mechanics.ModifiableStat("speed", stats["speed"]);
+            for (let current of data["entities"].getByName("stats")) {
+                const loadedStat = new Mechanics.ModifiableStat(
+                    current["name"],
+                    current["value"]
+                );
+
+                this.stats.push(loadedStat);
+            }
         }
 
         public addAnimationsFromFile(jsonKey: string): Phaser.Animation[] {
@@ -74,17 +82,25 @@ namespace Main.Entities {
             return result;
         }
 
+        public getStatByName(name: string): Mechanics.ModifiableStat {
+            return <Mechanics.ModifiableStat>this.stats.getByName(name);
+        }
+
+        public getSkillLineByName(name: string): Mechanics.SkillLine {
+            return <Mechanics.SkillLine>this.skillLines.getByName(name);
+        }
+
         public addAnimation(key: string, frames: number[], isLooped: boolean = true): Phaser.Animation {
             return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
         }
 
-        public collidesWith(other: any): void {
+        public checkCollisionWith(other: any): void {
             game.physics.arcade.collide(this.gameObject, other);
         }
 
-        public setMapCollisions(map: Services.Map): void {
-            for (let current of map.collisionLayers) {
-                game.physics.arcade.collide(current);
+        public checkMapCollisions(map: Services.Map): void {
+            for (let collisionLayer of map.collisionLayers) {
+                this.checkCollisionWith(collisionLayer);
             }
         }
     }

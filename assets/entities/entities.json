@@ -3,7 +3,13 @@
         {
             "name": "player",
             "maxHP": 12,
-            "speed": 150
+            "speed": 150,
+            "stats": [
+                {
+                    "name": "speed",
+                    "value": 150
+                }
+            ]
         }
     ]
 }

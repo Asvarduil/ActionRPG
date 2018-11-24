@@ -10,7 +10,7 @@
                 {
                     "index": 1,
                     "type": "collision",
-                    "startCollideIndex": 26,
+                    "startCollideIndex": 1,
                     "endCollideIndex": 63
                 },
                 {

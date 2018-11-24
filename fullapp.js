@@ -85,17 +85,18 @@ var Main;
                 this.gameObject = null;
                 this.direction = EntityDirections.DOWN;
                 this.health = null;
-                this.speed = null;
+                this.stats = [];
                 this.skillLines = [];
                 this.skillLines = Main.skillLineFactory.generateSkillLines();
                 // Default stats; these should be overwritten by each type of mob.
                 this.health = new Main.Mechanics.HealthSystem(4, this.onHealed, this.onHurt, this.onDeath);
-                this.speed = new Main.Mechanics.ModifiableStat('speed', 48);
                 // Create the actual game object for the mob.
                 this.gameObject = Main.game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
                 this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
-                if (enablePhysics)
+                if (enablePhysics) {
                     Main.game.physics.arcade.enable(this.gameObject);
+                    this.gameObject.body.tilePadding.set(32, 32);
+                }
                 // Bind animations...
                 this.addAnimationsFromFile(animationKey);
             }
@@ -112,7 +113,11 @@ var Main;
                 var stats = data["entities"].getByName(entityTypeName);
                 // Overwrite stats based on the data for the type of mob.
                 this.health = new Main.Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-                this.speed = new Main.Mechanics.ModifiableStat("speed", stats["speed"]);
+                for (var _i = 0, _a = data["entities"].getByName("stats"); _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    var loadedStat = new Main.Mechanics.ModifiableStat(current["name"], current["value"]);
+                    this.stats.push(loadedStat);
+                }
             };
             Mob.prototype.addAnimationsFromFile = function (jsonKey) {
                 // Data should be pre-loaded with this.game.load.json().
@@ -125,17 +130,23 @@ var Main;
                 }
                 return result;
             };
+            Mob.prototype.getStatByName = function (name) {
+                return this.stats.getByName(name);
+            };
+            Mob.prototype.getSkillLineByName = function (name) {
+                return this.skillLines.getByName(name);
+            };
             Mob.prototype.addAnimation = function (key, frames, isLooped) {
                 if (isLooped === void 0) { isLooped = true; }
                 return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
             };
-            Mob.prototype.collidesWith = function (other) {
+            Mob.prototype.checkCollisionWith = function (other) {
                 Main.game.physics.arcade.collide(this.gameObject, other);
             };
-            Mob.prototype.setMapCollisions = function (map) {
+            Mob.prototype.checkMapCollisions = function (map) {
                 for (var _i = 0, _a = map.collisionLayers; _i < _a.length; _i++) {
-                    var current = _a[_i];
-                    Main.game.physics.arcade.collide(current);
+                    var collisionLayer = _a[_i];
+                    this.checkCollisionWith(collisionLayer);
                 }
             };
             return Mob;
@@ -157,22 +168,10 @@ var Main;
                 //       This will also cover skill line levels, and other things.
             }
             Player.prototype.onUpdate = function (deltaTime) {
-                this.checkForDashing();
                 var hAxis = Main.inputService.getAxis('horizontal').value();
                 var vAxis = Main.inputService.getAxis('vertical').value();
-                this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
-                this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
                 this.selectAnimation(hAxis, vAxis);
-                this.performMovement(hAxis, vAxis);
-            };
-            Player.prototype.checkForDashing = function () {
-                // TODO: Add check against a Stamina resource.
-                // TODO: Every 1 sec spent dashing raises the Stamina
-                //       skill line by 1 XP.
-                this.speed.clearModifiers();
-                if (Main.inputService.getAxis('dash').isPressed()) {
-                    this.speed.addScaledEffect(0.6);
-                }
+                this.performMovement(hAxis, vAxis, deltaTime);
             };
             Player.prototype.selectAnimation = function (hAxis, vAxis) {
                 if (hAxis === 0)
@@ -185,8 +184,6 @@ var Main;
                         this.gameObject.animations.play('idle-down');
                     else if (this.direction === Entities.EntityDirections.UP)
                         this.gameObject.animations.play('idle-up');
-            };
-            Player.prototype.performMovement = function (hAxis, vAxis) {
                 if (hAxis > 0) {
                     this.gameObject.animations.play('walk-right');
                     this.direction = Entities.EntityDirections.RIGHT;
@@ -203,6 +200,19 @@ var Main;
                     this.gameObject.animations.play('walk-up');
                     this.direction = Entities.EntityDirections.UP;
                 }
+            };
+            Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
+                var physicsBody = this.gameObject.body;
+                var speed = this.getStatByName("speed");
+                var conditioningSkill = this.getSkillLineByName("conditioning");
+                speed.clearModifiers();
+                if (Main.inputService.getAxis('dash').isPressed()
+                    && (hAxis !== 0 || vAxis !== 0)) {
+                    speed.addScaledEffect(0.6);
+                    conditioningSkill.gainXP(deltaTime);
+                }
+                physicsBody.velocity.x = hAxis * speed.modifiedValue();
+                physicsBody.velocity.y = vAxis * speed.modifiedValue();
             };
             return Player;
         }(Entities.Mob));
@@ -384,6 +394,26 @@ var Main;
             CameraService.prototype.pan = function (x, y) {
                 Main.game.camera.x += x;
                 Main.game.camera.y += y;
+            };
+            CameraService.prototype.fadeOut = function (onComplete, durationMs, fadeColor) {
+                if (durationMs === void 0) { durationMs = 1000; }
+                if (fadeColor === void 0) { fadeColor = 0x000000; }
+                var onNextFadeDone = function () {
+                    onComplete();
+                    Main.game.camera.onFadeComplete.removeAll();
+                };
+                Main.game.camera.onFadeComplete.add(onNextFadeDone);
+                Main.game.camera.fade(fadeColor, durationMs);
+            };
+            CameraService.prototype.fadeIn = function (onComplete, durationMs, fadeColor) {
+                if (durationMs === void 0) { durationMs = 1000; }
+                if (fadeColor === void 0) { fadeColor = 0x000000; }
+                var onNextFadeDone = function () {
+                    onComplete();
+                    Main.game.camera.onFlashComplete.removeAll();
+                };
+                Main.game.camera.onFlashComplete.add(onNextFadeDone);
+                Main.game.camera.flash(fadeColor, durationMs);
             };
             return CameraService;
         }());
@@ -599,7 +629,7 @@ var Main;
                 collisionLayer.setScale(this.tileScale, this.tileScale);
                 Main.game.add.existing(collisionLayer);
                 Main.game.physics.arcade.enable(collisionLayer);
-                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
+                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, layerIndex);
                 this.layers.push(collisionLayer);
                 this.collisionLayers.push(collisionLayer);
                 return collisionLayer;
@@ -622,6 +652,7 @@ var Main;
                     var currentLayer = _a[_i];
                     if (currentLayer["type"]) {
                         if (currentLayer["type"].toLowerCase() == "collision") {
+                            console.log("Adding layer " + currentLayer["index"] + " as a collision layer...");
                             result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
                         }
                     }
@@ -690,11 +721,14 @@ var Main;
                 this.map = Main.mapService.loadMap('overworld');
                 this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
                 Main.cameraService.bindCamera(this.player);
+                Main.cameraService.fadeIn(function () { });
+                Main.game.physics.startSystem(Phaser.Physics.ARCADE);
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;
+                Main.game.physics.arcade.TILE_BIAS = 90;
                 this.player.onUpdate(deltaTime);
-                this.player.setMapCollisions(this.map);
+                this.player.checkMapCollisions(this.map);
             };
             return GameState;
         }(Phaser.State));
@@ -754,7 +788,9 @@ var Main;
             TitleState.prototype.create = function () {
                 Main.inputService.initialize();
                 var toGameState = function () {
-                    Main.stateService.load('game');
+                    Main.cameraService.fadeOut(function () {
+                        Main.stateService.load('game');
+                    });
                 };
                 var data = new Main.UI.MenuData([
                     new Main.UI.MenuOptionData('New Game', 8, 240, toGameState),

@@ -15,26 +15,11 @@ namespace Main.Entities {
         }
 
         public onUpdate(deltaTime: number): void {
-            this.checkForDashing();
-
             const hAxis = inputService.getAxis('horizontal').value();
             const vAxis = inputService.getAxis('vertical').value();
 
-            this.gameObject.position.x += hAxis * this.speed.modifiedValue() * deltaTime;
-            this.gameObject.position.y += vAxis * this.speed.modifiedValue() * deltaTime;
-
             this.selectAnimation(hAxis, vAxis);
-            this.performMovement(hAxis, vAxis);
-        }
-
-        private checkForDashing(): void {
-            // TODO: Add check against a Stamina resource.
-            // TODO: Every 1 sec spent dashing raises the Stamina
-            //       skill line by 1 XP.
-            this.speed.clearModifiers();
-            if (inputService.getAxis('dash').isPressed()) {
-                this.speed.addScaledEffect(0.6);
-            }
+            this.performMovement(hAxis, vAxis, deltaTime);
         }
 
         private selectAnimation(hAxis: number, vAxis: number): void {
@@ -48,9 +33,7 @@ namespace Main.Entities {
                     this.gameObject.animations.play('idle-down');
                 else if (this.direction === EntityDirections.UP)
                     this.gameObject.animations.play('idle-up');
-        }
-        
-        private performMovement(hAxis: number, vAxis: number): void {
+
             if (hAxis > 0) {
                 this.gameObject.animations.play('walk-right');
                 this.direction = EntityDirections.RIGHT;
@@ -66,6 +49,26 @@ namespace Main.Entities {
                 this.gameObject.animations.play('walk-up');
                 this.direction = EntityDirections.UP;
             }
+        }
+        
+        private performMovement(
+            hAxis: number, 
+            vAxis: number, 
+            deltaTime: number
+        ): void {
+            const physicsBody = this.gameObject.body;
+            const speed = this.getStatByName("speed");
+            const conditioningSkill = this.getSkillLineByName("conditioning");
+
+            speed.clearModifiers();
+            if (inputService.getAxis('dash').isPressed()
+                && (hAxis !== 0 || vAxis !== 0)) {
+                speed.addScaledEffect(0.6);
+                conditioningSkill.gainXP(deltaTime);
+            }
+
+            physicsBody.velocity.x = hAxis * speed.modifiedValue();
+            physicsBody.velocity.y = vAxis * speed.modifiedValue();
         }
     }
 }

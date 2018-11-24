@@ -33,7 +33,12 @@ namespace Main.Services {
             game.add.existing(collisionLayer);
             game.physics.arcade.enable(collisionLayer);
 
-            this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
+            this.map.setCollisionBetween(
+                firstCollisionTileIndex, 
+                lastCollisionTileIndex, 
+                true, 
+                layerIndex
+            );
             
             this.layers.push(collisionLayer);
             this.collisionLayers.push(collisionLayer);
@@ -62,6 +67,7 @@ namespace Main.Services {
             for (let currentLayer of generationData["layers"]) {
                 if (currentLayer["type"]) {
                     if (currentLayer["type"].toLowerCase() == "collision") {
+                        console.log(`Adding layer ${currentLayer["index"]} as a collision layer...`);
                         result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
                     }
                 } else {
