@@ -55,11 +55,11 @@ namespace Main.Entities {
 
         public setStatsFromFile(entityTypeName: string): void {
             const data = game.cache.getJSON('entity-stats');
-            const stats: any = data["entities"].getByName(entityTypeName);
+            const entityData: any = data["entities"].getByName(entityTypeName);
 
             // Overwrite stats based on the data for the type of mob.
-            this.health = new Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-            for (let current of data["entities"].getByName("stats")) {
+            this.health = new Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
+            for (let current of entityData["stats"]) {
                 const loadedStat = new Mechanics.ModifiableStat(
                     current["name"],
                     current["value"]

@@ -110,10 +110,10 @@ var Main;
             };
             Mob.prototype.setStatsFromFile = function (entityTypeName) {
                 var data = Main.game.cache.getJSON('entity-stats');
-                var stats = data["entities"].getByName(entityTypeName);
+                var entityData = data["entities"].getByName(entityTypeName);
                 // Overwrite stats based on the data for the type of mob.
-                this.health = new Main.Mechanics.HealthSystem(stats["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-                for (var _i = 0, _a = data["entities"].getByName("stats"); _i < _a.length; _i++) {
+                this.health = new Main.Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
+                for (var _i = 0, _a = entityData["stats"]; _i < _a.length; _i++) {
                     var current = _a[_i];
                     var loadedStat = new Main.Mechanics.ModifiableStat(current["name"], current["value"]);
                     this.stats.push(loadedStat);
