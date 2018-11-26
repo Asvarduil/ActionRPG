@@ -8,14 +8,12 @@ namespace Main.States {
         }
 
         public create(): void {
-            this.map  = mapService.loadMap('overworld');
+            game.physics.startSystem(Phaser.Physics.ARCADE);
+            this.map = mapService.loadMap('overworld');
 
             this.player = new Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
             cameraService.bindCamera(this.player);
-
             cameraService.fadeIn(() => {});
-
-            game.physics.startSystem(Phaser.Physics.ARCADE);
         }
 
         public update(): void {

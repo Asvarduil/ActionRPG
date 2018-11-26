@@ -34,7 +34,8 @@ namespace Main.Entities {
             this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
             if (enablePhysics) {
                 game.physics.arcade.enable(this.gameObject);
-                this.gameObject.body.tilePadding.set(32, 32);
+                // ...Had no effect...
+                //this.gameObject.body.tilePadding.set(32, 32);
             }
 
             // Bind animations...
@@ -102,6 +103,7 @@ namespace Main.Entities {
             for (let collisionLayer of map.collisionLayers) {
                 this.checkCollisionWith(collisionLayer);
             }
+            // this.checkCollisionWith(map.map);
         }
     }
 }

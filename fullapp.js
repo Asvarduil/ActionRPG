@@ -95,7 +95,8 @@ var Main;
                 this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
                 if (enablePhysics) {
                     Main.game.physics.arcade.enable(this.gameObject);
-                    this.gameObject.body.tilePadding.set(32, 32);
+                    // ...Had no effect...
+                    //this.gameObject.body.tilePadding.set(32, 32);
                 }
                 // Bind animations...
                 this.addAnimationsFromFile(animationKey);
@@ -148,6 +149,7 @@ var Main;
                     var collisionLayer = _a[_i];
                     this.checkCollisionWith(collisionLayer);
                 }
+                // this.checkCollisionWith(map.map);
             };
             return Mob;
         }());
@@ -204,13 +206,18 @@ var Main;
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
                 var physicsBody = this.gameObject.body;
                 var speed = this.getStatByName("speed");
-                var conditioningSkill = this.getSkillLineByName("conditioning");
+                var conditioningSkill = this.getSkillLineByName("Conditioning");
+                if (!conditioningSkill)
+                    console.error("Conditioning skill line wasn't added to the player!\r\n" + JSON.stringify(this.skillLines));
                 speed.clearModifiers();
                 if (Main.inputService.getAxis('dash').isPressed()
                     && (hAxis !== 0 || vAxis !== 0)) {
-                    speed.addScaledEffect(0.6);
+                    // At 1000 Conditioning, you'll get an 
+                    // additional 25% base move speed when sprinting.
+                    speed.addScaledEffect(0.6 + (0.00025 * conditioningSkill.level));
                     conditioningSkill.gainXP(deltaTime);
                 }
+                // Since I'm using physics why aren't I colliding?
                 physicsBody.velocity.x = hAxis * speed.modifiedValue();
                 physicsBody.velocity.y = vAxis * speed.modifiedValue();
             };
@@ -341,7 +348,8 @@ var Main;
                 this.xp += amount;
                 if (this.xp >= this.xpToNextLevel) {
                     this.xp = this.xp - this.xpToNextLevel;
-                    this.onLevelUp();
+                    if (this.onLevelUp)
+                        this.onLevelUp();
                 }
             };
             SkillLine.prototype.loseXP = function (amount) {
@@ -628,8 +636,9 @@ var Main;
                 var collisionLayer = this.map.createLayer(layerIndex);
                 collisionLayer.setScale(this.tileScale, this.tileScale);
                 Main.game.add.existing(collisionLayer);
+                // Physics have to be enabled for a collision layer to work...right?
                 Main.game.physics.arcade.enable(collisionLayer);
-                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, layerIndex);
+                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
                 this.layers.push(collisionLayer);
                 this.collisionLayers.push(collisionLayer);
                 return collisionLayer;
@@ -650,14 +659,15 @@ var Main;
                 // Build layers from data...
                 for (var _i = 0, _a = generationData["layers"]; _i < _a.length; _i++) {
                     var currentLayer = _a[_i];
+                    var index = currentLayer["index"];
                     if (currentLayer["type"]) {
                         if (currentLayer["type"].toLowerCase() == "collision") {
-                            console.log("Adding layer " + currentLayer["index"] + " as a collision layer...");
-                            result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
+                            console.log("Adding layer " + index + " as a collision layer...");
+                            result.addCollisionLayer(index, currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
                         }
                     }
                     else {
-                        result.addLayer(currentLayer["index"]);
+                        result.addLayer(index);
                     }
                 }
                 return result;
@@ -718,11 +728,11 @@ var Main;
             GameState.prototype.preload = function () {
             };
             GameState.prototype.create = function () {
+                Main.game.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = Main.mapService.loadMap('overworld');
                 this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
-                Main.game.physics.startSystem(Phaser.Physics.ARCADE);
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;

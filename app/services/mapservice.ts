@@ -31,13 +31,14 @@ namespace Main.Services {
             collisionLayer.setScale(this.tileScale, this.tileScale);
 
             game.add.existing(collisionLayer);
+            // Physics have to be enabled for a collision layer to work...right?
             game.physics.arcade.enable(collisionLayer);
 
             this.map.setCollisionBetween(
                 firstCollisionTileIndex, 
                 lastCollisionTileIndex, 
                 true, 
-                layerIndex
+                collisionLayer
             );
             
             this.layers.push(collisionLayer);
@@ -65,13 +66,14 @@ namespace Main.Services {
 
             // Build layers from data...
             for (let currentLayer of generationData["layers"]) {
+                const index: number = currentLayer["index"];
                 if (currentLayer["type"]) {
                     if (currentLayer["type"].toLowerCase() == "collision") {
-                        console.log(`Adding layer ${currentLayer["index"]} as a collision layer...`);
-                        result.addCollisionLayer(currentLayer["index"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
+                        console.log(`Adding layer ${index} as a collision layer...`);
+                        result.addCollisionLayer(index, currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
                     }
                 } else {
-                    result.addLayer(currentLayer["index"]);
+                    result.addLayer(index);
                 }
             }
             
