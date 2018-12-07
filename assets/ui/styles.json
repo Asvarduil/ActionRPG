@@ -1,15 +1,21 @@
 {
     "text": {
         "default": {
-            "fill": "#FFF"
+            "fill": "#FFF",
+            "stroke": "#CCC",
+            "strokeThickness": "1"
         }
     },
     "menu": {
         "default": {
-            "fill": "#FFF"
+            "fill": "#FFF",
+            "stroke": "#CCC",
+            "strokeThickness": "1"
         },
         "selected": {
-            "fill": "#FF3"
+            "fill": "#FF3",
+            "stroke": "#CCC",
+            "strokeThickness": "1"
         }
     }
 }
