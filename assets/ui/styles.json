@@ -1,0 +1,15 @@
+{
+    "text": {
+        "default": {
+            "fill": "#FFF"
+        }
+    },
+    "menu": {
+        "default": {
+            "fill": "#FFF"
+        },
+        "selected": {
+            "fill": "#FF3"
+        }
+    }
+}

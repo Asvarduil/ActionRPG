@@ -126,10 +126,16 @@ namespace Main.UI {
     }
 
     export class MenuFactory {
-        public constructor(
-            public defaultStyle: Phaser.PhaserTextStyle,
-            public selectedStyle: Phaser.PhaserTextStyle
-        ) {
+        public defaultStyle: Phaser.PhaserTextStyle;
+        public selectedStyle: Phaser.PhaserTextStyle;
+
+        public constructor() {
+        }
+
+        public iniitalize(): void {
+            const data = game.cache.getJSON('ui-styles');
+            this.defaultStyle = data['menu']['default'];
+            this.selectedStyle = data['menu']['selected'];
         }
 
         public create(menuData: MenuData): Menu {

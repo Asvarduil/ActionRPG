@@ -21,6 +21,7 @@ var Main;
     Main.inputService = null;
     Main.cameraService = null;
     Main.menuFactory = null;
+    Main.textFactory = null;
     Main.skillLineFactory = null;
     var App = /** @class */ (function () {
         function App() {
@@ -36,16 +37,11 @@ var Main;
             Main.stateService = new Main.Services.StateService(this.game);
             Main.inputService = new Main.Services.InputService();
             Main.mapService = new Main.Services.MapService();
-            Main.cameraService = new Main.Services.CameraService();
+            Main.cameraService = new Main.Services.SceneService();
         };
         App.prototype.registerFactories = function () {
-            var defaultStyle = {
-                fill: '#FFF'
-            };
-            var selectedStyle = {
-                fill: '#FF3'
-            };
-            Main.menuFactory = new Main.UI.MenuFactory(defaultStyle, selectedStyle);
+            Main.menuFactory = new Main.UI.MenuFactory();
+            Main.textFactory = new Main.UI.TextFactory();
             Main.skillLineFactory = new Main.Mechanics.SkillLineFactory();
             // TODO: More factories.
         };
@@ -458,45 +454,6 @@ var Main;
 (function (Main) {
     var Services;
     (function (Services) {
-        var CameraService = /** @class */ (function () {
-            function CameraService() {
-            }
-            CameraService.prototype.bindCamera = function (mob) {
-                Main.game.camera.follow(mob.gameObject.animations.sprite);
-            };
-            CameraService.prototype.pan = function (x, y) {
-                Main.game.camera.x += x;
-                Main.game.camera.y += y;
-            };
-            CameraService.prototype.fadeOut = function (onComplete, durationMs, fadeColor) {
-                if (durationMs === void 0) { durationMs = 1000; }
-                if (fadeColor === void 0) { fadeColor = 0x000000; }
-                var onNextFadeDone = function () {
-                    onComplete();
-                    Main.game.camera.onFadeComplete.removeAll();
-                };
-                Main.game.camera.onFadeComplete.add(onNextFadeDone);
-                Main.game.camera.fade(fadeColor, durationMs);
-            };
-            CameraService.prototype.fadeIn = function (onComplete, durationMs, fadeColor) {
-                if (durationMs === void 0) { durationMs = 1000; }
-                if (fadeColor === void 0) { fadeColor = 0x000000; }
-                var onNextFadeDone = function () {
-                    onComplete();
-                    Main.game.camera.onFlashComplete.removeAll();
-                };
-                Main.game.camera.onFlashComplete.add(onNextFadeDone);
-                Main.game.camera.flash(fadeColor, durationMs);
-            };
-            return CameraService;
-        }());
-        Services.CameraService = CameraService;
-    })(Services = Main.Services || (Main.Services = {}));
-})(Main || (Main = {}));
-var Main;
-(function (Main) {
-    var Services;
-    (function (Services) {
         var InputAxis = /** @class */ (function () {
             function InputAxis(name, positiveBindings, negativeBindings) {
                 if (name === void 0) { name = ''; }
@@ -746,6 +703,45 @@ var Main;
 (function (Main) {
     var Services;
     (function (Services) {
+        var SceneService = /** @class */ (function () {
+            function SceneService() {
+            }
+            SceneService.prototype.bindCamera = function (mob) {
+                Main.game.camera.follow(mob.gameObject.animations.sprite);
+            };
+            SceneService.prototype.pan = function (x, y) {
+                Main.game.camera.x += x;
+                Main.game.camera.y += y;
+            };
+            SceneService.prototype.fadeOut = function (onComplete, durationMs, fadeColor) {
+                if (durationMs === void 0) { durationMs = 1000; }
+                if (fadeColor === void 0) { fadeColor = 0x000000; }
+                var onNextFadeDone = function () {
+                    onComplete();
+                    Main.game.camera.onFadeComplete.removeAll();
+                };
+                Main.game.camera.onFadeComplete.add(onNextFadeDone);
+                Main.game.camera.fade(fadeColor, durationMs);
+            };
+            SceneService.prototype.fadeIn = function (onComplete, durationMs, fadeColor) {
+                if (durationMs === void 0) { durationMs = 1000; }
+                if (fadeColor === void 0) { fadeColor = 0x000000; }
+                var onNextFadeDone = function () {
+                    onComplete();
+                    Main.game.camera.onFlashComplete.removeAll();
+                };
+                Main.game.camera.onFlashComplete.add(onNextFadeDone);
+                Main.game.camera.flash(fadeColor, durationMs);
+            };
+            return SceneService;
+        }());
+        Services.SceneService = SceneService;
+    })(Services = Main.Services || (Main.Services = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Services;
+    (function (Services) {
         var StateService = /** @class */ (function () {
             function StateService(game) {
                 this.game = game;
@@ -786,8 +782,8 @@ var Main;
             function GameState() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
                 _this.map = null;
-                _this.cursors = null;
                 _this.player = null;
+                _this.skillUpLabel = null;
                 return _this;
             }
             GameState.prototype.preload = function () {
@@ -796,8 +792,23 @@ var Main;
                 Main.game.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = Main.mapService.loadMap('overworld');
                 this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
+                this.skillUpLabel = Main.textFactory.create(0, 0, '[Skill Up]');
+                this.skillUpLabel.alpha = 0;
+                this.skillUpLabel.fixedToCamera = true;
+                this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
+            };
+            GameState.prototype.onPlayerSkillUp = function (skill) {
+                var _this = this;
+                this.skillUpLabel.setText(skill.name + " has increased to " + skill.level);
+                this.skillUpLabel.x = Main.game.canvas.width / 2 - this.skillUpLabel.width / 2;
+                this.skillUpLabel.y = 100;
+                this.skillUpLabel.fixedToCamera = true;
+                Main.game.add.tween(this.skillUpLabel).to({ alpha: 1 }, 500, Phaser.Easing.Linear.None, true);
+                Main.game.time.events.add(3000, function () {
+                    Main.game.add.tween(_this.skillUpLabel).to({ alpha: 0 }, 500, Phaser.Easing.Linear.None, true);
+                });
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;
@@ -824,6 +835,8 @@ var Main;
                 Main.game.load.tilemap('test-map', 'assets/maps/test-3.json', null, Phaser.Tilemap.TILED_JSON);
                 Main.game.load.spritesheet('human-template', 'assets/images/human-template.png', 16, 16);
                 Main.game.load.spritesheet('hero-male', 'assets/images/hero-male.png', 16, 16);
+                // Used by UI factories
+                Main.game.load.json('ui-styles', 'assets/ui/styles.json');
                 // Used by the Map Service to build maps on the fly without hardcoding every single map.
                 Main.game.load.json('map-data', 'assets/maps/map-data.json');
                 // Used by the Entity system to set up mob stats, also without hardcoding every single one.
@@ -838,6 +851,8 @@ var Main;
                 // Ready any services...
                 Main.inputService.initialize();
                 // Ready any factories...
+                Main.textFactory.initialize();
+                Main.menuFactory.iniitalize();
                 Main.skillLineFactory.initialize();
                 // Actually start the game proper.
                 Main.stateService.load('title');
@@ -983,10 +998,13 @@ var Main;
         }());
         UI.Menu = Menu;
         var MenuFactory = /** @class */ (function () {
-            function MenuFactory(defaultStyle, selectedStyle) {
-                this.defaultStyle = defaultStyle;
-                this.selectedStyle = selectedStyle;
+            function MenuFactory() {
             }
+            MenuFactory.prototype.iniitalize = function () {
+                var data = Main.game.cache.getJSON('ui-styles');
+                this.defaultStyle = data['menu']['default'];
+                this.selectedStyle = data['menu']['selected'];
+            };
             MenuFactory.prototype.create = function (menuData) {
                 var menuLabels = [];
                 var index = 0;
@@ -1008,6 +1026,27 @@ var Main;
             return MenuFactory;
         }());
         UI.MenuFactory = MenuFactory;
+    })(UI = Main.UI || (Main.UI = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var UI;
+    (function (UI) {
+        var TextFactory = /** @class */ (function () {
+            function TextFactory() {
+                this.textStyle = null;
+            }
+            TextFactory.prototype.initialize = function () {
+                var data = Main.game.cache.getJSON('ui-styles');
+                this.textStyle = data['text']['default'];
+            };
+            TextFactory.prototype.create = function (x, y, text) {
+                var newText = Main.game.add.text(x, y, text, this.textStyle);
+                return newText;
+            };
+            return TextFactory;
+        }());
+        UI.TextFactory = TextFactory;
     })(UI = Main.UI || (Main.UI = {}));
 })(Main || (Main = {}));
 //# sourceMappingURL=fullapp.js.map

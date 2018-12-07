@@ -1,5 +1,5 @@
 namespace Main.Services {
-    export class CameraService {
+    export class SceneService {
         public constructor() {
 
         }

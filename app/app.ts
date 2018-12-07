@@ -5,9 +5,10 @@ namespace Main {
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
     export var inputService: Services.InputService = null;
-    export var cameraService: Services.CameraService = null;
+    export var cameraService: Services.SceneService = null;
 
     export var menuFactory: UI.MenuFactory = null;
+    export var textFactory: UI.TextFactory = null;
     export var skillLineFactory: Mechanics.SkillLineFactory = null;
 
     export class App {
@@ -36,20 +37,12 @@ namespace Main {
             stateService = new Services.StateService(this.game);
             inputService = new Services.InputService();
             mapService = new Services.MapService();
-            cameraService = new Services.CameraService();
+            cameraService = new Services.SceneService();
         }
 
         private registerFactories(): void {
-            const defaultStyle = {
-                fill: '#FFF'
-            };
-            const selectedStyle = {
-                fill: '#FF3'
-            };
-            menuFactory = new UI.MenuFactory(
-                defaultStyle,
-                selectedStyle
-            );
+            menuFactory = new UI.MenuFactory();
+            textFactory = new UI.TextFactory();
 
             skillLineFactory = new Mechanics.SkillLineFactory();
 

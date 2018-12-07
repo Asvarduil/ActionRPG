@@ -6,6 +6,9 @@ namespace Main.States {
             game.load.spritesheet('human-template', 'assets/images/human-template.png', 16, 16);
             game.load.spritesheet('hero-male', 'assets/images/hero-male.png', 16, 16);
 
+            // Used by UI factories
+            game.load.json('ui-styles', 'assets/ui/styles.json');
+
             // Used by the Map Service to build maps on the fly without hardcoding every single map.
             game.load.json('map-data', 'assets/maps/map-data.json');
 
@@ -25,6 +28,8 @@ namespace Main.States {
             inputService.initialize();
 
             // Ready any factories...
+            textFactory.initialize();
+            menuFactory.iniitalize();
             skillLineFactory.initialize();
 
             // Actually start the game proper.
