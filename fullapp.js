@@ -137,6 +137,28 @@ var Main;
             Mob.prototype.getSkillLineByName = function (name) {
                 return this.skillLines.getByName(name);
             };
+            Mob.prototype.addXpForSkill = function (xp, skill) {
+                var skillLine = this.getSkillLineByName(skill);
+                if (!skillLine) {
+                    console.error("Skill line " + skill + " does not exist.  Can't get XP for that line.");
+                    return;
+                }
+                var preXpLevel = skillLine.level;
+                skillLine.gainXP(xp);
+                var postXpLevel = skillLine.level;
+                if (postXpLevel > preXpLevel) {
+                    if (this.onSkillUp)
+                        this.onSkillUp(skillLine);
+                }
+            };
+            Mob.prototype.getLevelForSkill = function (skill) {
+                var skillLine = this.getSkillLineByName(skill);
+                if (!skillLine) {
+                    console.error("Skill line " + skill + " does not exist.  Can't get XP for that line.");
+                    return -1;
+                }
+                return skillLine.level;
+            };
             Mob.prototype.addAnimation = function (key, frames, isLooped) {
                 if (isLooped === void 0) { isLooped = true; }
                 return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
@@ -206,16 +228,13 @@ var Main;
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
                 var physicsBody = this.gameObject.body;
                 var speed = this.getStatByName("speed");
-                var conditioningSkill = this.getSkillLineByName("Conditioning");
-                if (!conditioningSkill)
-                    console.error("Conditioning skill line wasn't added to the player!\r\n" + JSON.stringify(this.skillLines));
                 speed.clearModifiers();
                 if (Main.inputService.getAxis('dash').isPressed()
                     && (hAxis !== 0 || vAxis !== 0)) {
                     // At 1000 Conditioning, you'll get an 
                     // additional 25% base move speed when sprinting.
-                    speed.addScaledEffect(0.6 + (0.00025 * conditioningSkill.level));
-                    conditioningSkill.gainXP(deltaTime);
+                    speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
+                    this.addXpForSkill(deltaTime, "Conditioning");
                 }
                 // Since I'm using physics why aren't I colliding?
                 physicsBody.velocity.x = hAxis * speed.modifiedValue();
@@ -332,13 +351,56 @@ var Main;
 (function (Main) {
     var Mechanics;
     (function (Mechanics) {
+        var SkillLineLevelupType;
+        (function (SkillLineLevelupType) {
+            SkillLineLevelupType[SkillLineLevelupType["LINEAR"] = 0] = "LINEAR";
+            SkillLineLevelupType[SkillLineLevelupType["EXPONENTIAL"] = 1] = "EXPONENTIAL";
+            SkillLineLevelupType[SkillLineLevelupType["LOGARITHMIC"] = 2] = "LOGARITHMIC";
+        })(SkillLineLevelupType = Mechanics.SkillLineLevelupType || (Mechanics.SkillLineLevelupType = {}));
+        var SkillLineLevelupData = /** @class */ (function () {
+            // Programmer's Notes:
+            // -------------------
+            // Based on the levelup type, generate a
+            // function to raise the amount of XP
+            // required to raise a skill line.
+            //
+            // Linear: ttnl = base + (modifier * previous)
+            // Exponential: ttnl = base + (previous ^ modifier)
+            // Logarithmic: ttnl = base + previous LOG modifier
+            function SkillLineLevelupData(type, base, modifier) {
+                if (type === void 0) { type = SkillLineLevelupType.LINEAR; }
+                if (base === void 0) { base = 1; }
+                if (modifier === void 0) { modifier = 1; }
+                this.type = type;
+                this.base = base;
+                this.modifier = modifier;
+            }
+            SkillLineLevelupData.prototype.generateNextXPTNL = function () {
+                var _this = this;
+                switch (this.type) {
+                    case SkillLineLevelupType.LINEAR:
+                        return function (previous) { return _this.base + (_this.modifier * previous); };
+                    case SkillLineLevelupType.EXPONENTIAL:
+                        return function (previous) { return _this.base + (previous ^ _this.modifier); };
+                    case SkillLineLevelupType.LOGARITHMIC:
+                        return function (previous) { return _this.base + (previous * Math.log(_this.modifier)); };
+                    default:
+                        console.error("Unexpected levelup type: " + this.type);
+                        return function (previous) { return _this.base; };
+                }
+            };
+            return SkillLineLevelupData;
+        }());
+        Mechanics.SkillLineLevelupData = SkillLineLevelupData;
         var SkillLine = /** @class */ (function () {
-            function SkillLine(name, description, defaultLevel, defaultXp, defaultXpToNextLevel, onLevelUp) {
+            function SkillLine(name, description, defaultLevel, defaultXp, defaultXpToNextLevel, levelupData, onLevelUp) {
                 if (defaultLevel === void 0) { defaultLevel = 1; }
                 if (defaultXp === void 0) { defaultXp = 0; }
                 if (defaultXpToNextLevel === void 0) { defaultXpToNextLevel = 5; }
+                if (levelupData === void 0) { levelupData = new SkillLineLevelupData(); }
                 this.name = name;
                 this.description = description;
+                this.levelupData = levelupData;
                 this.onLevelUp = onLevelUp;
                 this.level = defaultLevel;
                 this.xp = defaultXp;
@@ -348,6 +410,9 @@ var Main;
                 this.xp += amount;
                 if (this.xp >= this.xpToNextLevel) {
                     this.xp = this.xp - this.xpToNextLevel;
+                    this.level++;
+                    console.log(this.name + " has increased to " + this.level);
+                    this.xpToNextLevel = this.levelupData.generateNextXPTNL()(this.xpToNextLevel);
                     if (this.onLevelUp)
                         this.onLevelUp();
                 }
@@ -358,7 +423,7 @@ var Main;
                     this.xp = 0;
             };
             SkillLine.prototype.clone = function () {
-                var clone = new SkillLine(this.name, this.description, this.level, this.xp, this.xpToNextLevel, this.onLevelUp);
+                var clone = new SkillLine(this.name, this.description, this.level, this.xp, this.xpToNextLevel, this.levelupData, this.onLevelUp);
                 return clone;
             };
             return SkillLine;

@@ -64,6 +64,7 @@ namespace Main.Mechanics {
             if (this.xp >= this.xpToNextLevel) {
                 this.xp = this.xp - this.xpToNextLevel;
                 this.level++;
+                console.log(`${this.name} has increased to ${this.level}`);
                 this.xpToNextLevel = this.levelupData.generateNextXPTNL()(this.xpToNextLevel);
                 if (this.onLevelUp)
                     this.onLevelUp();
@@ -83,6 +84,7 @@ namespace Main.Mechanics {
                 this.level,
                 this.xp,
                 this.xpToNextLevel,
+                this.levelupData,
                 this.onLevelUp
             );
 

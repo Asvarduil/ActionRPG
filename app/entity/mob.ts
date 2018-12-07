@@ -14,6 +14,8 @@ namespace Main.Entities {
         public stats: Mechanics.ModifiableStat[] = [];
         public skillLines: Mechanics.SkillLine[] = [];
 
+        public onSkillUp: (skill: Mechanics.SkillLine) => void;
+
         public constructor(
             x: number,
             y: number,
@@ -89,6 +91,38 @@ namespace Main.Entities {
 
         public getSkillLineByName(name: string): Mechanics.SkillLine {
             return <Mechanics.SkillLine>this.skillLines.getByName(name);
+        }
+
+        public addXpForSkill(
+            xp: number,
+            skill: string
+        ): void {
+            const skillLine: Mechanics.SkillLine = this.getSkillLineByName(skill);
+            if (!skillLine) {
+                console.error(`Skill line ${skill} does not exist.  Can't get XP for that line.`);
+                return;
+            }
+
+            const preXpLevel = skillLine.level;
+            skillLine.gainXP(xp);
+            const postXpLevel = skillLine.level;
+
+            if (postXpLevel > preXpLevel) {
+                if (this.onSkillUp)
+                    this.onSkillUp(skillLine);
+            }
+        }
+
+        public getLevelForSkill(
+            skill: string
+        ): number {
+            const skillLine = this.getSkillLineByName(skill);
+            if (!skillLine) {
+                console.error(`Skill line ${skill} does not exist.  Can't get XP for that line.`);
+                return -1;
+            }
+
+            return skillLine.level;
         }
 
         public addAnimation(key: string, frames: number[], isLooped: boolean = true): Phaser.Animation {
