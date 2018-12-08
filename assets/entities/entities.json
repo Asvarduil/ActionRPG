@@ -15,8 +15,12 @@
                     "value": 150
                 },
                 {
+                    "name": "Dash Cost",
+                    "value": 5
+                },
+                {
                     "name": "Stamina Regen",
-                    "value": 0.1
+                    "value": 0.5
                 }
             ]
         }

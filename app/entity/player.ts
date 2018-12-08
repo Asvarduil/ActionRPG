@@ -59,12 +59,13 @@ namespace Main.Entities {
         ): void {
             const physicsBody = this.gameObject.body;
             const speed = this.getStatByName("speed");
+            const dashCost = this.getStatByName("Dash Cost");
             const stamina = this.getResourceByName("Stamina");
 
             speed.clearModifiers();
             if (inputService.getAxis('dash').isPressed()
                 && (hAxis !== 0 || vAxis !== 0)
-                && stamina.consume(deltaTime)) {
+                && stamina.consume(dashCost.modifiedValue() * deltaTime)) {
                 // At 1000 Conditioning, you'll get an 
                 // additional 25% base move speed when sprinting.
                 speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
