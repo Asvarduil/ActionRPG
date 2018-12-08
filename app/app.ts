@@ -9,6 +9,7 @@ namespace Main {
 
     export var menuFactory: UI.MenuFactory = null;
     export var textFactory: UI.TextFactory = null;
+    export var resourceGaugeFactory: UI.ResourceGaugeFactory = null;
     export var skillLineFactory: Mechanics.SkillLineFactory = null;
 
     export class App {
@@ -43,6 +44,7 @@ namespace Main {
         private registerFactories(): void {
             menuFactory = new UI.MenuFactory();
             textFactory = new UI.TextFactory();
+            resourceGaugeFactory = new UI.ResourceGaugeFactory();
 
             skillLineFactory = new Mechanics.SkillLineFactory();
 

@@ -3,6 +3,7 @@ namespace Main.States {
         public map: Services.Map = null;
         public player: Entities.Player = null;
         public skillUpLabel: Phaser.Text = null;
+        public staminaGauge: UI.ResourceGauge = null;
         
         public preload(): void {
         }
@@ -17,6 +18,10 @@ namespace Main.States {
             this.skillUpLabel.alpha = 0;
             this.skillUpLabel.fixedToCamera = true;
             this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
+
+            const playerStamina = this.player.getResourceByName("Stamina");
+            this.staminaGauge = resourceGaugeFactory.create(2, 2, playerStamina, "Stamina");
+            playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
 
             cameraService.bindCamera(this.player);
             cameraService.fadeIn(() => {});
@@ -43,6 +48,10 @@ namespace Main.States {
                     true
                 );
             });
+        }
+
+        private onPlayerStaminaChange(): void {
+            this.staminaGauge.update();
         }
 
         public update(): void {

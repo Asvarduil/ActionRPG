@@ -3,11 +3,20 @@
         {
             "name": "player",
             "maxHP": 12,
-            "speed": 150,
+            "resources": [
+                {
+                    "name": "Stamina",
+                    "max": 100
+                }
+            ],
             "stats": [
                 {
                     "name": "speed",
                     "value": 150
+                },
+                {
+                    "name": "Stamina Regen",
+                    "value": 1
                 }
             ]
         }

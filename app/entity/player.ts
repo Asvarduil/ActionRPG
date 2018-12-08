@@ -20,6 +20,7 @@ namespace Main.Entities {
 
             this.selectAnimation(hAxis, vAxis);
             this.performMovement(hAxis, vAxis, deltaTime);
+            this.resourceRegeneration(deltaTime);
         }
 
         private selectAnimation(hAxis: number, vAxis: number): void {
@@ -58,10 +59,12 @@ namespace Main.Entities {
         ): void {
             const physicsBody = this.gameObject.body;
             const speed = this.getStatByName("speed");
+            const stamina = this.getResourceByName("Stamina");
 
             speed.clearModifiers();
             if (inputService.getAxis('dash').isPressed()
-                && (hAxis !== 0 || vAxis !== 0)) {
+                && (hAxis !== 0 || vAxis !== 0)
+                && stamina.consume(deltaTime)) {
                 // At 1000 Conditioning, you'll get an 
                 // additional 25% base move speed when sprinting.
                 speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
@@ -71,6 +74,13 @@ namespace Main.Entities {
             // Since I'm using physics why aren't I colliding?
             physicsBody.velocity.x = hAxis * speed.modifiedValue();
             physicsBody.velocity.y = vAxis * speed.modifiedValue();
+        }
+
+        private resourceRegeneration(deltaTime: number): void {
+            const stamina = this.getResourceByName("Stamina");
+            const staminaRegen = this.getStatByName("Stamina Regen");
+
+            stamina.gain(staminaRegen.modifiedValue());
         }
     }
 }

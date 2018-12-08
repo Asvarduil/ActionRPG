@@ -1,11 +1,8 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -22,6 +19,7 @@ var Main;
     Main.cameraService = null;
     Main.menuFactory = null;
     Main.textFactory = null;
+    Main.resourceGaugeFactory = null;
     Main.skillLineFactory = null;
     var App = /** @class */ (function () {
         function App() {
@@ -42,6 +40,7 @@ var Main;
         App.prototype.registerFactories = function () {
             Main.menuFactory = new Main.UI.MenuFactory();
             Main.textFactory = new Main.UI.TextFactory();
+            Main.resourceGaugeFactory = new Main.UI.ResourceGaugeFactory();
             Main.skillLineFactory = new Main.Mechanics.SkillLineFactory();
             // TODO: More factories.
         };
@@ -81,6 +80,7 @@ var Main;
                 this.gameObject = null;
                 this.direction = EntityDirections.DOWN;
                 this.health = null;
+                this.resources = [];
                 this.stats = [];
                 this.skillLines = [];
                 this.skillLines = Main.skillLineFactory.generateSkillLines();
@@ -110,8 +110,13 @@ var Main;
                 var entityData = data["entities"].getByName(entityTypeName);
                 // Overwrite stats based on the data for the type of mob.
                 this.health = new Main.Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-                for (var _i = 0, _a = entityData["stats"]; _i < _a.length; _i++) {
+                for (var _i = 0, _a = entityData["resources"]; _i < _a.length; _i++) {
                     var current = _a[_i];
+                    var loadedResource = new Main.Mechanics.Resource(current["name"], current["value"]);
+                    this.resources.push(loadedResource);
+                }
+                for (var _b = 0, _c = entityData["stats"]; _b < _c.length; _b++) {
+                    var current = _c[_b];
                     var loadedStat = new Main.Mechanics.ModifiableStat(current["name"], current["value"]);
                     this.stats.push(loadedStat);
                 }
@@ -132,6 +137,9 @@ var Main;
             };
             Mob.prototype.getSkillLineByName = function (name) {
                 return this.skillLines.getByName(name);
+            };
+            Mob.prototype.getResourceByName = function (name) {
+                return this.resources.getByName(name);
             };
             Mob.prototype.addXpForSkill = function (xp, skill) {
                 var skillLine = this.getSkillLineByName(skill);
@@ -192,6 +200,7 @@ var Main;
                 var vAxis = Main.inputService.getAxis('vertical').value();
                 this.selectAnimation(hAxis, vAxis);
                 this.performMovement(hAxis, vAxis, deltaTime);
+                this.resourceRegeneration(deltaTime);
             };
             Player.prototype.selectAnimation = function (hAxis, vAxis) {
                 if (hAxis === 0)
@@ -224,9 +233,11 @@ var Main;
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
                 var physicsBody = this.gameObject.body;
                 var speed = this.getStatByName("speed");
+                var stamina = this.getResourceByName("Stamina");
                 speed.clearModifiers();
                 if (Main.inputService.getAxis('dash').isPressed()
-                    && (hAxis !== 0 || vAxis !== 0)) {
+                    && (hAxis !== 0 || vAxis !== 0)
+                    && stamina.consume(deltaTime)) {
                     // At 1000 Conditioning, you'll get an 
                     // additional 25% base move speed when sprinting.
                     speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
@@ -235,6 +246,11 @@ var Main;
                 // Since I'm using physics why aren't I colliding?
                 physicsBody.velocity.x = hAxis * speed.modifiedValue();
                 physicsBody.velocity.y = vAxis * speed.modifiedValue();
+            };
+            Player.prototype.resourceRegeneration = function (deltaTime) {
+                var stamina = this.getResourceByName("Stamina");
+                var staminaRegen = this.getStatByName("Stamina Regen");
+                stamina.gain(staminaRegen.modifiedValue());
             };
             return Player;
         }(Entities.Mob));
@@ -341,6 +357,68 @@ var Main;
             return ModifiableStat;
         }());
         Mechanics.ModifiableStat = ModifiableStat;
+    })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Mechanics;
+    (function (Mechanics) {
+        var Resource = /** @class */ (function () {
+            function Resource(name, max) {
+                this.name = name;
+                this.max = max;
+                this.current = this.max;
+                this.workingMax = this.max;
+            }
+            Resource.prototype.hasEnough = function (amount) {
+                return this.current >= amount;
+            };
+            Resource.prototype.gain = function (amount) {
+                var preGain = this.current;
+                this.current += amount;
+                if (this.current > this.workingMax)
+                    this.current = this.workingMax;
+                var postGain = this.current;
+                if (preGain != postGain)
+                    if (this.onChange)
+                        this.onChange();
+            };
+            Resource.prototype.consume = function (amount) {
+                if (!this.hasEnough(amount))
+                    return false;
+                var preConsume = this.current;
+                this.current -= amount;
+                if (this.current <= 0)
+                    this.current = 0;
+                var postConsume = this.current;
+                if (preConsume != postConsume)
+                    if (this.onChange)
+                        this.onChange();
+                return true;
+            };
+            Resource.prototype.augment = function (amount) {
+                this.workingMax += amount;
+                if (this.workingMax > this.max)
+                    this.workingMax = this.max;
+            };
+            Resource.prototype.diminish = function (amount) {
+                this.workingMax -= amount;
+                if (this.workingMax <= 0)
+                    this.workingMax = 0;
+                if (this.current >= this.workingMax) {
+                    var preDiminish = this.current;
+                    this.current = this.workingMax;
+                    if (this.current < 0)
+                        this.current = 0;
+                    var postDiminish = this.current;
+                    if (preDiminish != postDiminish)
+                        if (this.onChange)
+                            this.onChange();
+                }
+            };
+            return Resource;
+        }());
+        Mechanics.Resource = Resource;
     })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
 })(Main || (Main = {}));
 var Main;
@@ -784,6 +862,7 @@ var Main;
                 _this.map = null;
                 _this.player = null;
                 _this.skillUpLabel = null;
+                _this.staminaGauge = null;
                 return _this;
             }
             GameState.prototype.preload = function () {
@@ -796,6 +875,9 @@ var Main;
                 this.skillUpLabel.alpha = 0;
                 this.skillUpLabel.fixedToCamera = true;
                 this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
+                var playerStamina = this.player.getResourceByName("Stamina");
+                this.staminaGauge = Main.resourceGaugeFactory.create(2, 2, playerStamina, "Stamina");
+                playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
             };
@@ -809,6 +891,9 @@ var Main;
                 Main.game.time.events.add(3000, function () {
                     Main.game.add.tween(_this.skillUpLabel).to({ alpha: 0 }, 500, Phaser.Easing.Linear.None, true);
                 });
+            };
+            GameState.prototype.onPlayerStaminaChange = function () {
+                this.staminaGauge.update();
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;
@@ -853,6 +938,7 @@ var Main;
                 // Ready any factories...
                 Main.textFactory.initialize();
                 Main.menuFactory.iniitalize();
+                Main.resourceGaugeFactory.initialize();
                 Main.skillLineFactory.initialize();
                 // Actually start the game proper.
                 Main.stateService.load('title');
@@ -898,6 +984,122 @@ var Main;
         }(Phaser.State));
         States.TitleState = TitleState;
     })(States = Main.States || (Main.States = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var UI;
+    (function (UI) {
+        var ResourceGauge = /** @class */ (function () {
+            function ResourceGauge(x, y, resource, style) {
+                this.x = x;
+                this.y = y;
+                this.resource = resource;
+                this.style = style;
+                this.background = null;
+                this.foreground = null;
+                var bgData = Main.game.add.bitmapData(style.backgroundWidth, style.backgroundHeight);
+                var fgData = Main.game.add.bitmapData(style.foregroundWidth, style.foregroundHeight);
+                if (this.style.backgroundColor && this.style.foregroundColor) {
+                    bgData.ctx.beginPath();
+                    fgData.ctx.beginPath();
+                    bgData.ctx.rect(0, 0, 2, 2);
+                    fgData.ctx.rect(0, 0, 2, 2);
+                    bgData.ctx.fillStyle = style.backgroundColor;
+                    fgData.ctx.fillStyle = style.foregroundColor;
+                    bgData.ctx.fill();
+                    fgData.ctx.fill();
+                    this.background = Main.game.add.sprite(this.x, this.y, bgData);
+                    this.foreground = Main.game.add.sprite(this.x + this.style.foregroundOffsetX, this.y + this.style.foregroundOffsetY, fgData);
+                }
+                else if (this.style.backgroundImageKey && this.style.foregroundImageKey) {
+                    this.background = Main.game.add.sprite(this.x, this.y, this.style.backgroundImageKey);
+                    this.foreground = Main.game.add.sprite(this.x + this.style.foregroundOffsetX, this.y + this.style.foregroundOffsetY, this.style.foregroundImageKey);
+                }
+                else {
+                    console.error("Gauge style " + this.style.name + " requires either a bg/fg image key or a bg/fg style.  This type of gauge will throw errors.");
+                }
+                this.background.fixedToCamera = true;
+                this.foreground.fixedToCamera = true;
+                var bgWidth = 0;
+                var bgHeight = 0;
+                var fgWidth = 0;
+                var fgHeight = 0;
+                if (this.isHorizontalGauge()) {
+                    bgHeight = this.style.backgroundHeight;
+                    fgHeight = this.style.foregroundHeight;
+                    bgWidth = this.style.backgroundWidth;
+                    var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                    fgWidth = newWidth;
+                }
+                else {
+                    bgWidth = this.style.backgroundWidth;
+                    fgWidth = this.style.foregroundWidth;
+                    bgHeight = this.style.backgroundHeight;
+                    var newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                    fgHeight = newHeight;
+                }
+                this.background.scale.setTo(bgWidth, bgHeight);
+                this.foreground.scale.setTo(fgWidth, fgHeight);
+            }
+            ResourceGauge.prototype.isHorizontalGauge = function () {
+                if (this.style.foregroundWidth && this.style.backgroundWidth)
+                    return false;
+                else if (this.style.foregroundHeight && this.style.backgroundHeight)
+                    return true;
+                else {
+                    console.error("Gauge " + this.style.name + " requires either bg/fg heights and/or bg/fg widths.");
+                    return false;
+                }
+            };
+            ResourceGauge.prototype.update = function () {
+                if (this.isHorizontalGauge()) {
+                    var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                    Main.game.add.tween(this.foreground.scale).to({ 'x': newWidth }, 500, Phaser.Easing.Linear.None, true);
+                }
+                else {
+                    var newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                    Main.game.add.tween(this.foreground.scale).to({ 'y': newHeight }, 500, Phaser.Easing.Linear.None, true);
+                }
+            };
+            return ResourceGauge;
+        }());
+        UI.ResourceGauge = ResourceGauge;
+        var ResourceGaugeFactory = /** @class */ (function () {
+            function ResourceGaugeFactory() {
+                this.styles = [];
+            }
+            ResourceGaugeFactory.prototype.initialize = function () {
+                var data = Main.game.cache.getJSON('ui-styles');
+                var gaugeData = data["gauges"];
+                for (var _i = 0, gaugeData_1 = gaugeData; _i < gaugeData_1.length; _i++) {
+                    var current = gaugeData_1[_i];
+                    this.styles.push(current);
+                }
+            };
+            ResourceGaugeFactory.prototype.create = function (x, y, resource, style) {
+                var gaugeStyle;
+                if (!style) {
+                    if (this.styles.length === 0) {
+                        console.error("Styles need to be added for Gauges.");
+                        return null;
+                    }
+                    gaugeStyle = this.styles[0];
+                }
+                else {
+                    gaugeStyle = this.styles.getByName(style);
+                    if (gaugeStyle == null) {
+                        console.error("There's no Gauge style named " + style);
+                        console.error("" + JSON.stringify(this.styles));
+                        return null;
+                    }
+                }
+                var gauge = new ResourceGauge(x, y, resource, gaugeStyle);
+                return gauge;
+            };
+            return ResourceGaugeFactory;
+        }());
+        UI.ResourceGaugeFactory = ResourceGaugeFactory;
+    })(UI = Main.UI || (Main.UI = {}));
 })(Main || (Main = {}));
 var Main;
 (function (Main) {

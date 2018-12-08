@@ -30,6 +30,7 @@ namespace Main.States {
             // Ready any factories...
             textFactory.initialize();
             menuFactory.iniitalize();
+            resourceGaugeFactory.initialize();
             skillLineFactory.initialize();
 
             // Actually start the game proper.

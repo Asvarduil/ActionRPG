@@ -17,5 +17,17 @@
             "stroke": "#CCC",
             "strokeThickness": "1"
         }
-    }
+    },
+    "gauges": [
+        {
+            "name": "Stamina",
+            "backgroundWidth": 100,
+            "backgroundHeight": 8,
+            "foregroundHeight": 6,
+            "foregroundOffsetX": 1,
+            "foregroundOffsetY": 1,
+            "backgroundColor": "#333",
+            "foregroundColor": "#CC3"
+        }
+    ]
 }

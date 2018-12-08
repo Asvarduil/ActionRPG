@@ -11,6 +11,7 @@ namespace Main.Entities {
         public direction: EntityDirections = EntityDirections.DOWN;
 
         public health: Mechanics.HealthSystem = null;
+        public resources: Mechanics.Resource[] = [];
         public stats: Mechanics.ModifiableStat[] = [];
         public skillLines: Mechanics.SkillLine[] = [];
 
@@ -62,6 +63,15 @@ namespace Main.Entities {
 
             // Overwrite stats based on the data for the type of mob.
             this.health = new Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
+            for (let current of entityData["resources"]) {
+                const loadedResource = new Mechanics.Resource(
+                    current["name"],
+                    current["value"]
+                );
+
+                this.resources.push(loadedResource);
+            }
+
             for (let current of entityData["stats"]) {
                 const loadedStat = new Mechanics.ModifiableStat(
                     current["name"],
@@ -91,6 +101,10 @@ namespace Main.Entities {
 
         public getSkillLineByName(name: string): Mechanics.SkillLine {
             return <Mechanics.SkillLine>this.skillLines.getByName(name);
+        }
+
+        public getResourceByName(name: string): Mechanics.Resource {
+            return <Mechanics.Resource>this.resources.getByName(name);
         }
 
         public addXpForSkill(
