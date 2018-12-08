@@ -21,11 +21,13 @@
     "gauges": [
         {
             "name": "Stamina",
+            "isHorizontal": true,
             "backgroundWidth": 100,
             "backgroundHeight": 8,
+            "foregroundWidth": 98,
             "foregroundHeight": 6,
-            "foregroundOffsetX": 1,
-            "foregroundOffsetY": 1,
+            "foregroundOffsetX": 2,
+            "foregroundOffsetY": 2,
             "backgroundColor": "#333",
             "foregroundColor": "#CC3"
         }

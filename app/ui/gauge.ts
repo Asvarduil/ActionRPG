@@ -2,6 +2,7 @@ namespace Main.UI {
     export interface IResourceGaugeStyleData 
         extends INamed {
         name: string;
+        isHorizontal: boolean;
         backgroundWidth?: number;
         foregroundWidth?: number;
         backgroundHeight?: number;
@@ -81,18 +82,18 @@ namespace Main.UI {
             let fgWidth = 0;
             let fgHeight = 0;
 
-            if (this.isHorizontalGauge()) {
+            if (this.style.isHorizontal) {
                 bgHeight = this.style.backgroundHeight;
-                fgHeight = this.style.foregroundHeight;
-
                 bgWidth = this.style.backgroundWidth;
+
+                fgHeight = this.style.foregroundHeight;
                 const newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
                 fgWidth = newWidth;
             } else {
                 bgWidth = this.style.backgroundWidth;
-                fgWidth = this.style.foregroundWidth;
-
                 bgHeight = this.style.backgroundHeight;
+                
+                fgWidth = this.style.foregroundWidth;
                 const newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
                 fgHeight = newHeight;
             }
@@ -101,19 +102,8 @@ namespace Main.UI {
             this.foreground.scale.setTo(fgWidth, fgHeight);
         }
 
-        private isHorizontalGauge(): boolean {
-            if (this.style.foregroundWidth && this.style.backgroundWidth)
-                return false;
-            else if (this.style.foregroundHeight && this.style.backgroundHeight)
-                return true;
-            else {
-                console.error(`Gauge ${this.style.name} requires either bg/fg heights and/or bg/fg widths.`);
-                return false;
-            }
-        }
-
         public update(): void {
-            if (this.isHorizontalGauge()) {
+            if (this.style.isHorizontal) {
                 const newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
                 game.add.tween(this.foreground.scale).to(
                     { 'x': newWidth },

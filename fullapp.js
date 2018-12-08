@@ -112,7 +112,7 @@ var Main;
                 this.health = new Main.Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
                 for (var _i = 0, _a = entityData["resources"]; _i < _a.length; _i++) {
                     var current = _a[_i];
-                    var loadedResource = new Main.Mechanics.Resource(current["name"], current["value"]);
+                    var loadedResource = new Main.Mechanics.Resource(current["name"], current["max"]);
                     this.resources.push(loadedResource);
                 }
                 for (var _b = 0, _c = entityData["stats"]; _b < _c.length; _b++) {
@@ -250,7 +250,7 @@ var Main;
             Player.prototype.resourceRegeneration = function (deltaTime) {
                 var stamina = this.getResourceByName("Stamina");
                 var staminaRegen = this.getStatByName("Stamina Regen");
-                stamina.gain(staminaRegen.modifiedValue());
+                stamina.gain(staminaRegen.modifiedValue() * deltaTime);
             };
             return Player;
         }(Entities.Mob));
@@ -876,7 +876,7 @@ var Main;
                 this.skillUpLabel.fixedToCamera = true;
                 this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
                 var playerStamina = this.player.getResourceByName("Stamina");
-                this.staminaGauge = Main.resourceGaugeFactory.create(2, 2, playerStamina, "Stamina");
+                this.staminaGauge = Main.resourceGaugeFactory.create(438, 2, playerStamina, "Stamina");
                 playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
@@ -893,6 +893,7 @@ var Main;
                 });
             };
             GameState.prototype.onPlayerStaminaChange = function () {
+                var stamina = this.player.getResourceByName("Stamina");
                 this.staminaGauge.update();
             };
             GameState.prototype.update = function () {
@@ -1024,35 +1025,25 @@ var Main;
                 var bgHeight = 0;
                 var fgWidth = 0;
                 var fgHeight = 0;
-                if (this.isHorizontalGauge()) {
+                if (this.style.isHorizontal) {
                     bgHeight = this.style.backgroundHeight;
-                    fgHeight = this.style.foregroundHeight;
                     bgWidth = this.style.backgroundWidth;
+                    fgHeight = this.style.foregroundHeight;
                     var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
                     fgWidth = newWidth;
                 }
                 else {
                     bgWidth = this.style.backgroundWidth;
-                    fgWidth = this.style.foregroundWidth;
                     bgHeight = this.style.backgroundHeight;
+                    fgWidth = this.style.foregroundWidth;
                     var newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
                     fgHeight = newHeight;
                 }
                 this.background.scale.setTo(bgWidth, bgHeight);
                 this.foreground.scale.setTo(fgWidth, fgHeight);
             }
-            ResourceGauge.prototype.isHorizontalGauge = function () {
-                if (this.style.foregroundWidth && this.style.backgroundWidth)
-                    return false;
-                else if (this.style.foregroundHeight && this.style.backgroundHeight)
-                    return true;
-                else {
-                    console.error("Gauge " + this.style.name + " requires either bg/fg heights and/or bg/fg widths.");
-                    return false;
-                }
-            };
             ResourceGauge.prototype.update = function () {
-                if (this.isHorizontalGauge()) {
+                if (this.style.isHorizontal) {
                     var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
                     Main.game.add.tween(this.foreground.scale).to({ 'x': newWidth }, 500, Phaser.Easing.Linear.None, true);
                 }

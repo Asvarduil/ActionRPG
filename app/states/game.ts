@@ -20,7 +20,7 @@ namespace Main.States {
             this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
 
             const playerStamina = this.player.getResourceByName("Stamina");
-            this.staminaGauge = resourceGaugeFactory.create(2, 2, playerStamina, "Stamina");
+            this.staminaGauge = resourceGaugeFactory.create(438, 2, playerStamina, "Stamina");
             playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
 
             cameraService.bindCamera(this.player);
@@ -51,6 +51,7 @@ namespace Main.States {
         }
 
         private onPlayerStaminaChange(): void {
+            const stamina = this.player.getResourceByName("Stamina");
             this.staminaGauge.update();
         }
 

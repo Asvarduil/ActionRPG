@@ -80,7 +80,7 @@ namespace Main.Entities {
             const stamina = this.getResourceByName("Stamina");
             const staminaRegen = this.getStatByName("Stamina Regen");
 
-            stamina.gain(staminaRegen.modifiedValue());
+            stamina.gain(staminaRegen.modifiedValue() * deltaTime);
         }
     }
 }

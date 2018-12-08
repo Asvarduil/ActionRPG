@@ -66,7 +66,7 @@ namespace Main.Entities {
             for (let current of entityData["resources"]) {
                 const loadedResource = new Mechanics.Resource(
                     current["name"],
-                    current["value"]
+                    current["max"]
                 );
 
                 this.resources.push(loadedResource);

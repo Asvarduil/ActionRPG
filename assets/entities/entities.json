@@ -16,7 +16,7 @@
                 },
                 {
                     "name": "Stamina Regen",
-                    "value": 1
+                    "value": 0.1
                 }
             ]
         }
