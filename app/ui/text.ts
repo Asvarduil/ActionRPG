@@ -1,21 +1,35 @@
 namespace Main.UI {
+    export type INamedPhaserTextStyle = Phaser.PhaserTextStyle & INamed;
+
     export class TextFactory {
-        public textStyle: Phaser.PhaserTextStyle = null;
+        public styles: INamedPhaserTextStyle[] = [];
 
         public constructor() {
         }
 
         public initialize(): void {
             const data = game.cache.getJSON('ui-styles');
-            this.textStyle = data['text']['default'];
+            const styleData = data['text'];
+
+            for (let current of styleData) {
+                this.styles.push(current);
+            }
         }
 
         public create(
             x: number, 
             y: number, 
-            text: string
+            text: string,
+            style?: string
         ): Phaser.Text {
-            const newText = game.add.text(x, y, text, this.textStyle);
+            let styleData: INamedPhaserTextStyle;
+            if (!style) {
+                styleData = JSON.parse(JSON.stringify(this.styles[0]));
+            } else {
+                styleData = JSON.parse(JSON.stringify(this.styles.getByName(style)));  
+            }
+  
+            const newText = game.add.text(x, y, text, styleData);
             return newText;
         }
     }

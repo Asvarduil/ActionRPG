@@ -1,11 +1,8 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    }
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -1236,14 +1233,25 @@ var Main;
     (function (UI) {
         var TextFactory = /** @class */ (function () {
             function TextFactory() {
-                this.textStyle = null;
+                this.styles = [];
             }
             TextFactory.prototype.initialize = function () {
                 var data = Main.game.cache.getJSON('ui-styles');
-                this.textStyle = data['text']['default'];
+                var styleData = data['text'];
+                for (var _i = 0, styleData_1 = styleData; _i < styleData_1.length; _i++) {
+                    var current = styleData_1[_i];
+                    this.styles.push(current);
+                }
             };
-            TextFactory.prototype.create = function (x, y, text) {
-                var newText = Main.game.add.text(x, y, text, this.textStyle);
+            TextFactory.prototype.create = function (x, y, text, style) {
+                var styleData;
+                if (!style) {
+                    styleData = JSON.parse(JSON.stringify(this.styles[0]));
+                }
+                else {
+                    styleData = JSON.parse(JSON.stringify(this.styles.getByName(style)));
+                }
+                var newText = Main.game.add.text(x, y, text, styleData);
                 return newText;
             };
             return TextFactory;
