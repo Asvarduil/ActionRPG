@@ -1,7 +1,7 @@
 namespace Main.UI {
-    export interface IResourceGaugeStyleData extends INamed {
+    export interface IResourceGaugeStyleData {
         name: string;
-        isHorizontal: boolean;
+        isHorizontal?: boolean;
         backgroundWidth?: number;
         foregroundWidth?: number;
         backgroundHeight?: number;
