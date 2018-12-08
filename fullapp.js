@@ -1,8 +1,11 @@
 "use strict";
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
@@ -221,7 +224,7 @@ var Main;
                     this.gameObject.animations.play('walk-left');
                     this.direction = Entities.EntityDirections.LEFT;
                 }
-                if (vAxis > 0) {
+                else if (vAxis > 0) {
                     this.gameObject.animations.play('walk-down');
                     this.direction = Entities.EntityDirections.DOWN;
                 }
@@ -233,11 +236,12 @@ var Main;
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
                 var physicsBody = this.gameObject.body;
                 var speed = this.getStatByName("speed");
+                var dashCost = this.getStatByName("Dash Cost");
                 var stamina = this.getResourceByName("Stamina");
                 speed.clearModifiers();
                 if (Main.inputService.getAxis('dash').isPressed()
                     && (hAxis !== 0 || vAxis !== 0)
-                    && stamina.consume(deltaTime)) {
+                    && stamina.consume(dashCost.modifiedValue() * deltaTime)) {
                     // At 1000 Conditioning, you'll get an 
                     // additional 25% base move speed when sprinting.
                     speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
@@ -268,71 +272,6 @@ Array.prototype.getByName = function (name) {
     }
     return result;
 };
-var Main;
-(function (Main) {
-    var Mechanics;
-    (function (Mechanics) {
-        var HealthSystem = /** @class */ (function (_super) {
-            __extends(HealthSystem, _super);
-            function HealthSystem(max, onHealed, onHurt, onDeath) {
-                var _this = _super.call(this, "Health", max) || this;
-                _this.max = max;
-                _this.onHealed = onHealed;
-                _this.onHurt = onHurt;
-                _this.onDeath = onDeath;
-                return _this;
-            }
-            HealthSystem.prototype.gain = function (amount) {
-                if (amount <= 0)
-                    return;
-                var preHealHP = this.current;
-                this.current += amount;
-                if (this.current >= this.workingMax)
-                    this.current = this.workingMax;
-                var postHealHP = this.current;
-                if (preHealHP !== postHealHP) {
-                    if (this.onChange)
-                        this.onChange();
-                    this.onHealed();
-                }
-            };
-            HealthSystem.prototype.consume = function (amount) {
-                if (amount <= 0)
-                    return false;
-                var preHurtHP = this.current;
-                this.current -= amount;
-                if (this.current <= 0)
-                    this.current = 0;
-                var postHurtHP = this.current;
-                if (preHurtHP !== postHurtHP) {
-                    if (this.onChange)
-                        this.onChange();
-                    this.onHurt();
-                    this.checkForDeath();
-                    return true;
-                }
-                return false;
-            };
-            HealthSystem.prototype.checkForDeath = function () {
-                if (this.current >= 0)
-                    return;
-                this.onDeath();
-            };
-            HealthSystem.prototype.diminish = function (amount) {
-                this.workingMax -= amount;
-                if (this.workingMax > this.current) {
-                    this.current = this.workingMax;
-                    if (this.onChange)
-                        this.onChange();
-                    this.onHurt();
-                    this.checkForDeath();
-                }
-            };
-            return HealthSystem;
-        }(Mechanics.Resource));
-        Mechanics.HealthSystem = HealthSystem;
-    })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
-})(Main || (Main = {}));
 var Main;
 (function (Main) {
     var Mechanics;
@@ -425,6 +364,65 @@ var Main;
             return Resource;
         }());
         Mechanics.Resource = Resource;
+        var HealthSystem = /** @class */ (function (_super) {
+            __extends(HealthSystem, _super);
+            function HealthSystem(max, onHealed, onHurt, onDeath) {
+                var _this = _super.call(this, "Health", max) || this;
+                _this.max = max;
+                _this.onHealed = onHealed;
+                _this.onHurt = onHurt;
+                _this.onDeath = onDeath;
+                return _this;
+            }
+            HealthSystem.prototype.gain = function (amount) {
+                if (amount <= 0)
+                    return;
+                var preHealHP = this.current;
+                this.current += amount;
+                if (this.current >= this.workingMax)
+                    this.current = this.workingMax;
+                var postHealHP = this.current;
+                if (preHealHP !== postHealHP) {
+                    if (this.onChange)
+                        this.onChange();
+                    this.onHealed();
+                }
+            };
+            HealthSystem.prototype.consume = function (amount) {
+                if (amount <= 0)
+                    return false;
+                var preHurtHP = this.current;
+                this.current -= amount;
+                if (this.current <= 0)
+                    this.current = 0;
+                var postHurtHP = this.current;
+                if (preHurtHP !== postHurtHP) {
+                    if (this.onChange)
+                        this.onChange();
+                    this.onHurt();
+                    this.checkForDeath();
+                    return true;
+                }
+                return false;
+            };
+            HealthSystem.prototype.checkForDeath = function () {
+                if (this.current >= 0)
+                    return;
+                this.onDeath();
+            };
+            HealthSystem.prototype.diminish = function (amount) {
+                this.workingMax -= amount;
+                if (this.workingMax > this.current) {
+                    this.current = this.workingMax;
+                    if (this.onChange)
+                        this.onChange();
+                    this.onHurt();
+                    this.checkForDeath();
+                }
+            };
+            return HealthSystem;
+        }(Resource));
+        Mechanics.HealthSystem = HealthSystem;
     })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
 })(Main || (Main = {}));
 var Main;
