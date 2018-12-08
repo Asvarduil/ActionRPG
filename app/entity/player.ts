@@ -41,9 +41,7 @@ namespace Main.Entities {
             } else if (hAxis < 0) {
                 this.gameObject.animations.play('walk-left');
                 this.direction = EntityDirections.LEFT;
-            }
-
-            if (vAxis > 0) {
+            } else if (vAxis > 0) {
                 this.gameObject.animations.play('walk-down');
                 this.direction = EntityDirections.DOWN;
             } else if (vAxis < 0) {

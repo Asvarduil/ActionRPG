@@ -224,7 +224,7 @@ var Main;
                     this.gameObject.animations.play('walk-left');
                     this.direction = Entities.EntityDirections.LEFT;
                 }
-                if (vAxis > 0) {
+                else if (vAxis > 0) {
                     this.gameObject.animations.play('walk-down');
                     this.direction = Entities.EntityDirections.DOWN;
                 }
