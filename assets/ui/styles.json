@@ -20,6 +20,18 @@
     },
     "gauges": [
         {
+            "name": "Health",
+            "isHorizontal": true,
+            "backgroundWidth": 100,
+            "backgroundHeight": 8,
+            "foregroundWidth": 98,
+            "foregroundHeight": 6,
+            "foregroundOffsetX": 2,
+            "foregroundOffsetY": 2,
+            "backgroundColor": "#333",
+            "foregroundColor": "#C33"
+        },
+        {
             "name": "Stamina",
             "isHorizontal": true,
             "backgroundWidth": 100,

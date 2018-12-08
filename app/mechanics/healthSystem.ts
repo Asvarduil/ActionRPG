@@ -1,67 +1,72 @@
 namespace Main.Mechanics {
-    export class HealthSystem {
-        public HP: number;
-        public workingMaxHP: number;
-
+    export class HealthSystem extends Resource {
         public constructor(
-            public maxHP: number,
+            public max: number,
             public onHealed: () => void,
             public onHurt: () => void,
             public onDeath: () => void
         ) {
-            this.HP = this.maxHP;
+            super("Health", max);
         }
 
-        public heal(amount: number): void {
+        public gain(amount: number): void {
             if (amount <= 0)
                 return;
 
-            const preHealHP: number = this.HP;
-            this.HP += amount;
-            if (this.HP >= this.workingMaxHP)
-                this.HP = this.workingMaxHP;
+            const preHealHP: number = this.current;
+            this.current += amount;
+            if (this.current >= this.workingMax)
+                this.current = this.workingMax;
 
-            const postHealHP: number = this.HP;
+            const postHealHP: number = this.current;
 
-            if (preHealHP !== postHealHP)
+            if (preHealHP !== postHealHP) {
+                if (this.onChange)
+                    this.onChange();
+
                 this.onHealed();
-        }
-
-        public harm(amount: number): void {
-            if (amount <= 0)
-                return;
-
-            const preHurtHP: number = this.HP;
-
-            this.HP -= amount;
-            if (this.HP <= 0)
-                this.HP = 0;
-
-            const postHurtHP: number = this.HP;
-
-            if (preHurtHP !== postHurtHP) {
-                this.onHurt();
-                this.checkForDeath();
             }
         }
 
+        public consume(amount: number): boolean {
+            if (amount <= 0)
+                return false;
+
+            const preHurtHP: number = this.current;
+
+            this.current -= amount;
+            if (this.current <= 0)
+                this.current = 0;
+
+            const postHurtHP: number = this.current;
+
+            if (preHurtHP !== postHurtHP) {
+                if (this.onChange)
+                    this.onChange();
+
+                this.onHurt();
+                this.checkForDeath();
+                return true;
+            }
+
+            return false;
+        }
+
         public checkForDeath(): void {
-            if (this.HP >= 0)
+            if (this.current >= 0)
                 return;
 
             this.onDeath();
         }
 
-        public augment(amount: number): void {
-            this.workingMaxHP += amount;
-            if (this.workingMaxHP > this.maxHP)
-                this.workingMaxHP = this.maxHP;
-        }
-
         public diminish(amount: number): void {
-            this.workingMaxHP -= amount;
-            if (this.workingMaxHP > this.HP) {
-                this.HP = this.workingMaxHP;
+            this.workingMax -= amount;
+            if (this.workingMax > this.current) {
+                this.current = this.workingMax;
+
+                if (this.onChange)
+                    this.onChange();
+
                 this.onHurt();
                 this.checkForDeath();
             }

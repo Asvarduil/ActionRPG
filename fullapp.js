@@ -272,58 +272,64 @@ var Main;
 (function (Main) {
     var Mechanics;
     (function (Mechanics) {
-        var HealthSystem = /** @class */ (function () {
-            function HealthSystem(maxHP, onHealed, onHurt, onDeath) {
-                this.maxHP = maxHP;
-                this.onHealed = onHealed;
-                this.onHurt = onHurt;
-                this.onDeath = onDeath;
-                this.HP = this.maxHP;
+        var HealthSystem = /** @class */ (function (_super) {
+            __extends(HealthSystem, _super);
+            function HealthSystem(max, onHealed, onHurt, onDeath) {
+                var _this = _super.call(this, "Health", max) || this;
+                _this.max = max;
+                _this.onHealed = onHealed;
+                _this.onHurt = onHurt;
+                _this.onDeath = onDeath;
+                return _this;
             }
-            HealthSystem.prototype.heal = function (amount) {
+            HealthSystem.prototype.gain = function (amount) {
                 if (amount <= 0)
                     return;
-                var preHealHP = this.HP;
-                this.HP += amount;
-                if (this.HP >= this.workingMaxHP)
-                    this.HP = this.workingMaxHP;
-                var postHealHP = this.HP;
-                if (preHealHP !== postHealHP)
+                var preHealHP = this.current;
+                this.current += amount;
+                if (this.current >= this.workingMax)
+                    this.current = this.workingMax;
+                var postHealHP = this.current;
+                if (preHealHP !== postHealHP) {
+                    if (this.onChange)
+                        this.onChange();
                     this.onHealed();
-            };
-            HealthSystem.prototype.harm = function (amount) {
-                if (amount <= 0)
-                    return;
-                var preHurtHP = this.HP;
-                this.HP -= amount;
-                if (this.HP <= 0)
-                    this.HP = 0;
-                var postHurtHP = this.HP;
-                if (preHurtHP !== postHurtHP) {
-                    this.onHurt();
-                    this.checkForDeath();
                 }
             };
+            HealthSystem.prototype.consume = function (amount) {
+                if (amount <= 0)
+                    return false;
+                var preHurtHP = this.current;
+                this.current -= amount;
+                if (this.current <= 0)
+                    this.current = 0;
+                var postHurtHP = this.current;
+                if (preHurtHP !== postHurtHP) {
+                    if (this.onChange)
+                        this.onChange();
+                    this.onHurt();
+                    this.checkForDeath();
+                    return true;
+                }
+                return false;
+            };
             HealthSystem.prototype.checkForDeath = function () {
-                if (this.HP >= 0)
+                if (this.current >= 0)
                     return;
                 this.onDeath();
             };
-            HealthSystem.prototype.augment = function (amount) {
-                this.workingMaxHP += amount;
-                if (this.workingMaxHP > this.maxHP)
-                    this.workingMaxHP = this.maxHP;
-            };
             HealthSystem.prototype.diminish = function (amount) {
-                this.workingMaxHP -= amount;
-                if (this.workingMaxHP > this.HP) {
-                    this.HP = this.workingMaxHP;
+                this.workingMax -= amount;
+                if (this.workingMax > this.current) {
+                    this.current = this.workingMax;
+                    if (this.onChange)
+                        this.onChange();
                     this.onHurt();
                     this.checkForDeath();
                 }
             };
             return HealthSystem;
-        }());
+        }(Mechanics.Resource));
         Mechanics.HealthSystem = HealthSystem;
     })(Mechanics = Main.Mechanics || (Main.Mechanics = {}));
 })(Main || (Main = {}));
@@ -862,6 +868,7 @@ var Main;
                 _this.map = null;
                 _this.player = null;
                 _this.skillUpLabel = null;
+                _this.healthGauge = null;
                 _this.staminaGauge = null;
                 return _this;
             }
@@ -875,6 +882,8 @@ var Main;
                 this.skillUpLabel.alpha = 0;
                 this.skillUpLabel.fixedToCamera = true;
                 this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
+                this.healthGauge = Main.resourceGaugeFactory.create(2, 2, this.player.health, "Health");
+                this.player.health.onChange = this.onPlayerHealthChange.bind(this);
                 var playerStamina = this.player.getResourceByName("Stamina");
                 this.staminaGauge = Main.resourceGaugeFactory.create(438, 2, playerStamina, "Stamina");
                 playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
@@ -892,8 +901,10 @@ var Main;
                     Main.game.add.tween(_this.skillUpLabel).to({ alpha: 0 }, 500, Phaser.Easing.Linear.None, true);
                 });
             };
+            GameState.prototype.onPlayerHealthChange = function () {
+                this.healthGauge.update();
+            };
             GameState.prototype.onPlayerStaminaChange = function () {
-                var stamina = this.player.getResourceByName("Stamina");
                 this.staminaGauge.update();
             };
             GameState.prototype.update = function () {
