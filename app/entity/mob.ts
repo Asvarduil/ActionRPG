@@ -35,14 +35,28 @@ namespace Main.Entities {
             // Create the actual game object for the mob.
             this.gameObject = game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
             this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
+
             if (enablePhysics) {
-                game.physics.arcade.enable(this.gameObject);
-                // ...Had no effect...
-                //this.gameObject.body.tilePadding.set(32, 32);
+                this.readyPhysics();
             }
 
             // Bind animations...
             this.addAnimationsFromFile(animationKey);
+        }
+
+        protected readyPhysics(): void {
+            game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
+            this.gameObject.anchor.set(0.05, 0.05);
+
+            const body = this.body();
+            body.bounce.setTo(0, 0);
+            body.collideWorldBounds = true;
+            body.allowDrag = true;
+            body.angularDrag = 1.0;
+        }
+
+        public body(): Phaser.Physics.Arcade.Body {
+            return <Phaser.Physics.Arcade.Body>this.gameObject.body;
         }
 
         public onHealed(): void {
@@ -143,15 +157,23 @@ namespace Main.Entities {
             return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
         }
 
-        public checkCollisionWith(other: any): void {
-            game.physics.arcade.collide(this.gameObject, other);
-        }
+        public checkCollisionWith(other: any, onCollide?: () => void): void {
+            let collidingObject: ICollidableObject;
+            switch (other.constructor) {
+                case Mob:
+                    collidingObject = other.gameObject;
+                    break;
 
-        public checkMapCollisions(map: Services.Map): void {
-            for (let collisionLayer of map.collisionLayers) {
-                this.checkCollisionWith(collisionLayer);
+                case Services.Map:
+                    collidingObject = <Services.Map>(other).collisionLayer;
+                    break;
+
+                default:
+                    collidingObject = other;
+                    break;
             }
-            // this.checkCollisionWith(map.map);
+
+            game.physics.arcade.collide(this.gameObject, collidingObject, onCollide);
         }
     }
 }

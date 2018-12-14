@@ -5,14 +5,18 @@ namespace Main.States {
         public skillUpLabel: Phaser.Text = null;
         public healthGauge: UI.ResourceGauge = null;
         public staminaGauge: UI.ResourceGauge = null;
-        
+
+        private npc: Entities.Mob = null;
+
         public preload(): void {
         }
 
         public create(): void {
             game.physics.startSystem(Phaser.Physics.ARCADE);
+            
             this.map = mapService.loadMap('overworld');
 
+            this.npc = new Entities.Mob(96, 192, 16, 'hero-male', 'template-animations', 3);
             this.player = new Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
             
             this.skillUpLabel = textFactory.create(0, 0, '[Skill Up]');
@@ -64,10 +68,11 @@ namespace Main.States {
 
         public update(): void {
             const deltaTime = this.game.time.physicsElapsed;
-            game.physics.arcade.TILE_BIAS = 90;
 
             this.player.onUpdate(deltaTime);
-            this.player.checkMapCollisions(this.map);
+            this.player.checkCollisionWith(this.npc);
+            this.player.checkCollisionWith(this.map);
+            this.npc.checkCollisionWith(this.map);
         }
     }
 }

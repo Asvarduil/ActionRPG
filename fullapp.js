@@ -90,13 +90,29 @@ var Main;
                 this.gameObject = Main.game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
                 this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
                 if (enablePhysics) {
-                    Main.game.physics.arcade.enable(this.gameObject);
-                    // ...Had no effect...
-                    //this.gameObject.body.tilePadding.set(32, 32);
+                    this.readyPhysics(tileSize);
                 }
                 // Bind animations...
                 this.addAnimationsFromFile(animationKey);
             }
+            Mob.prototype.readyPhysics = function (tileSize) {
+                // Programmer's Notes...
+                // http://examples.phaser.io/_site/view_full.html?d=tilemaps&f=tile+callbacks.js&t=tile%20callbacks
+                // Physics must be enabled, anchors set, and the body must be sized with an offset, for the hitbox.
+                // TODO:
+                // Tear this out, and integrate from this: https://gamedevacademy.org/html5-phaser-tutorial-top-down-games-with-tiled/
+                Main.game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
+                this.gameObject.anchor.set(0.5, 0.5);
+                var body = this.body();
+                body.bounce.setTo(0, 0);
+                body.collideWorldBounds = true;
+                body.allowDrag = true;
+                body.angularDrag = 1.0;
+                //this.body().tilePadding.set(8);
+            };
+            Mob.prototype.body = function () {
+                return this.gameObject.body;
+            };
             Mob.prototype.onHealed = function () {
             };
             Mob.prototype.onHurt = function () {
@@ -167,15 +183,20 @@ var Main;
                 if (isLooped === void 0) { isLooped = true; }
                 return this.gameObject.animations.add(key, frames, this.frameRate, isLooped);
             };
-            Mob.prototype.checkCollisionWith = function (other) {
-                Main.game.physics.arcade.collide(this.gameObject, other);
-            };
-            Mob.prototype.checkMapCollisions = function (map) {
-                for (var _i = 0, _a = map.collisionLayers; _i < _a.length; _i++) {
-                    var collisionLayer = _a[_i];
-                    this.checkCollisionWith(collisionLayer);
+            Mob.prototype.checkCollisionWith = function (other, onCollide) {
+                var collidingObject;
+                switch (other.constructor) {
+                    case Mob:
+                        collidingObject = other.gameObject;
+                        break;
+                    case Main.Services.Map:
+                        collidingObject = (other).collisionLayer;
+                        break;
+                    default:
+                        collidingObject = other;
+                        break;
                 }
-                // this.checkCollisionWith(map.map);
+                Main.game.physics.arcade.collide(this.gameObject, collidingObject, onCollide);
             };
             return Mob;
         }());
@@ -231,7 +252,7 @@ var Main;
                 }
             };
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
-                var physicsBody = this.gameObject.body;
+                var physicsBody = this.body();
                 var speed = this.getStatByName("speed");
                 var dashCost = this.getStatByName("Dash Cost");
                 var stamina = this.getResourceByName("Stamina");
@@ -239,9 +260,7 @@ var Main;
                 if (Main.inputService.getAxis('dash').isPressed()
                     && (hAxis !== 0 || vAxis !== 0)
                     && stamina.consume(dashCost.modifiedValue() * deltaTime)) {
-                    // At 1000 Conditioning, you'll get an 
-                    // additional 25% base move speed when sprinting.
-                    speed.addScaledEffect(0.6 + (0.00025 * this.getLevelForSkill("Conditioning")));
+                    speed.addScaledEffect(0.6);
                     this.addXpForSkill(deltaTime, "Conditioning");
                 }
                 // Since I'm using physics why aren't I colliding?
@@ -251,7 +270,8 @@ var Main;
             Player.prototype.resourceRegeneration = function (deltaTime) {
                 var stamina = this.getResourceByName("Stamina");
                 var staminaRegen = this.getStatByName("Stamina Regen");
-                stamina.gain(staminaRegen.modifiedValue() * deltaTime);
+                var conditioning = this.getLevelForSkill("Conditioning");
+                stamina.gain(staminaRegen.modifiedValue() + ((conditioning / 1000) * 0.25) * deltaTime);
             };
             return Player;
         }(Entities.Mob));
@@ -322,8 +342,7 @@ var Main;
                     this.current = this.workingMax;
                 var postGain = this.current;
                 if (preGain != postGain)
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
             };
             Resource.prototype.consume = function (amount) {
                 if (!this.hasEnough(amount))
@@ -334,8 +353,7 @@ var Main;
                     this.current = 0;
                 var postConsume = this.current;
                 if (preConsume != postConsume)
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
                 return true;
             };
             Resource.prototype.augment = function (amount) {
@@ -354,9 +372,14 @@ var Main;
                         this.current = 0;
                     var postDiminish = this.current;
                     if (preDiminish != postDiminish)
-                        if (this.onChange)
-                            this.onChange();
+                        this.fireChangeEvent();
                 }
+            };
+            Resource.prototype.fireChangeEvent = function () {
+                if (!this.onChange)
+                    return false;
+                this.onChange();
+                return true;
             };
             return Resource;
         }());
@@ -380,8 +403,7 @@ var Main;
                     this.current = this.workingMax;
                 var postHealHP = this.current;
                 if (preHealHP !== postHealHP) {
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
                     this.onHealed();
                 }
             };
@@ -394,8 +416,7 @@ var Main;
                     this.current = 0;
                 var postHurtHP = this.current;
                 if (preHurtHP !== postHurtHP) {
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
                     this.onHurt();
                     this.checkForDeath();
                     return true;
@@ -411,8 +432,7 @@ var Main;
                 this.workingMax -= amount;
                 if (this.workingMax > this.current) {
                     this.current = this.workingMax;
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
                     this.onHurt();
                     this.checkForDeath();
                 }
@@ -720,29 +740,47 @@ var Main;
                 this.tileSize = tileSize;
                 this.tileScale = tileScale;
                 this.layers = [];
-                this.collisionLayers = [];
+                this.collisionLayer = null;
                 this.map.addTilesetImage(tileSetKey, tileSetKey, tileSize, tileSize);
                 var firstLayer = this.addLayer(0);
                 firstLayer.resizeWorld();
             }
-            Map.prototype.addLayer = function (layerIndex) {
-                var newLayer = this.map.createLayer(layerIndex);
+            Map.prototype.addLayer = function (layerId) {
+                var newLayer = this.map.createLayer(layerId);
                 newLayer.setScale(this.tileScale, this.tileScale);
                 this.layers.push(newLayer);
                 return newLayer;
             };
-            Map.prototype.addCollisionLayer = function (layerIndex, firstCollisionTileIndex, lastCollisionTileIndex) {
+            Map.prototype.addCollisionLayer = function (layerId, firstCollisionTileIndex, lastCollisionTileIndex, collisionGroup) {
                 if (firstCollisionTileIndex === void 0) { firstCollisionTileIndex = 1; }
                 if (lastCollisionTileIndex === void 0) { lastCollisionTileIndex = 1; }
-                var collisionLayer = this.map.createLayer(layerIndex);
-                collisionLayer.setScale(this.tileScale, this.tileScale);
-                Main.game.add.existing(collisionLayer);
-                // Physics have to be enabled for a collision layer to work...right?
-                Main.game.physics.arcade.enable(collisionLayer);
-                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer);
-                this.layers.push(collisionLayer);
-                this.collisionLayers.push(collisionLayer);
+                var collisionLayer = this.addLayer(layerId);
+                this.map.setCollisionBetween(firstCollisionTileIndex, lastCollisionTileIndex, true, collisionLayer, true);
+                if (collisionGroup) {
+                    // Assume that a collision group exists,
+                    // and that it has or will have physics and collisions
+                    // set up on it.
+                    collisionGroup.add(collisionLayer);
+                }
+                else {
+                    Main.game.physics.enable(collisionLayer, Phaser.Physics.ARCADE);
+                    var body = collisionLayer.body;
+                    body.immovable = true;
+                }
+                this.collisionLayer = collisionLayer;
                 return collisionLayer;
+            };
+            Map.prototype.checkCollisionWith = function (other, onCollide) {
+                var collidingObject;
+                switch (other.constructor) {
+                    case Main.Entities.Mob:
+                        collidingObject = other.gameObject;
+                        break;
+                    default:
+                        collidingObject = other;
+                        break;
+                }
+                Main.game.physics.arcade.collide(this.collisionLayer, collidingObject, onCollide);
             };
             return Map;
         }());
@@ -750,7 +788,7 @@ var Main;
         var MapService = /** @class */ (function () {
             function MapService() {
             }
-            MapService.prototype.loadMap = function (key) {
+            MapService.prototype.loadMap = function (key, collisionGroup) {
                 var data = Main.game.cache.getJSON('map-data');
                 var generationData = data['maps'].getByName(key);
                 // Create the general map from the data...
@@ -761,14 +799,17 @@ var Main;
                 for (var _i = 0, _a = generationData["layers"]; _i < _a.length; _i++) {
                     var currentLayer = _a[_i];
                     var index = currentLayer["index"];
-                    if (currentLayer["type"]) {
-                        if (currentLayer["type"].toLowerCase() == "collision") {
+                    switch (currentLayer["type"].toLowerCase()) {
+                        case "collision":
                             console.log("Adding layer " + index + " as a collision layer...");
-                            result.addCollisionLayer(index, currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
-                        }
-                    }
-                    else {
-                        result.addLayer(index);
+                            if (!currentLayer["layerName"])
+                                result.addCollisionLayer(index, currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"], collisionGroup);
+                            else
+                                result.addCollisionLayer(currentLayer["layerName"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"], collisionGroup);
+                            break;
+                        default:
+                            result.addLayer(index);
+                            break;
                     }
                 }
                 return result;
@@ -865,6 +906,7 @@ var Main;
                 _this.skillUpLabel = null;
                 _this.healthGauge = null;
                 _this.staminaGauge = null;
+                _this.npc = null;
                 return _this;
             }
             GameState.prototype.preload = function () {
@@ -873,6 +915,7 @@ var Main;
                 Main.game.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = Main.mapService.loadMap('overworld');
                 this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
+                this.npc = new Main.Entities.Mob(96, 192, 16, 'hero-male', 'template-animations', 3);
                 this.skillUpLabel = Main.textFactory.create(0, 0, '[Skill Up]');
                 this.skillUpLabel.alpha = 0;
                 this.skillUpLabel.fixedToCamera = true;
@@ -904,9 +947,16 @@ var Main;
             };
             GameState.prototype.update = function () {
                 var deltaTime = this.game.time.physicsElapsed;
-                Main.game.physics.arcade.TILE_BIAS = 90;
                 this.player.onUpdate(deltaTime);
-                this.player.checkMapCollisions(this.map);
+                this.player.checkCollisionWith(this.npc);
+                this.player.checkCollisionWith(this.map);
+            };
+            GameState.prototype.render = function () {
+                // The player is appearing within the blue region of the collision layer.
+                // I don't think this is correct - I think each collidable tile should be blue.
+                //game.debug.body(this.map.collisionLayer, '#369');
+                //game.debug.body(this.player.gameObject, '#FFF');
+                Main.game.debug.bodyInfo(this.player.gameObject, 2, 48, '#FFF');
             };
             return GameState;
         }(Phaser.State));

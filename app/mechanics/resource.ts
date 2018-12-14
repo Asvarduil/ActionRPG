@@ -26,8 +26,7 @@ namespace Main.Mechanics {
 
             const postGain = this.current;
             if(preGain != postGain)
-                if (this.onChange)
-                    this.onChange();
+                this.fireChangeEvent();
         }
 
         public consume(amount: number): boolean {
@@ -41,8 +40,7 @@ namespace Main.Mechanics {
 
             const postConsume = this.current;
             if (preConsume != postConsume)
-                if (this.onChange)
-                    this.onChange();
+                this.fireChangeEvent();
 
             return true;
         }
@@ -66,9 +64,16 @@ namespace Main.Mechanics {
 
                 const postDiminish = this.current;
                 if (preDiminish != postDiminish)
-                    if (this.onChange)
-                        this.onChange();
+                    this.fireChangeEvent();
             }
+        }
+
+        protected fireChangeEvent(): boolean {
+            if (!this.onChange)
+                return false;
+
+            this.onChange();
+            return true;
         }
     }
 
@@ -94,8 +99,7 @@ namespace Main.Mechanics {
             const postHealHP: number = this.current;
 
             if (preHealHP !== postHealHP) {
-                if (this.onChange)
-                    this.onChange();
+                this.fireChangeEvent();
 
                 this.onHealed();
             }
@@ -114,8 +118,7 @@ namespace Main.Mechanics {
             const postHurtHP: number = this.current;
 
             if (preHurtHP !== postHurtHP) {
-                if (this.onChange)
-                    this.onChange();
+                this.fireChangeEvent();
 
                 this.onHurt();
                 this.checkForDeath();
@@ -137,8 +140,7 @@ namespace Main.Mechanics {
             if (this.workingMax > this.current) {
                 this.current = this.workingMax;
 
-                if (this.onChange)
-                    this.onChange();
+                this.fireChangeEvent();
 
                 this.onHurt();
                 this.checkForDeath();

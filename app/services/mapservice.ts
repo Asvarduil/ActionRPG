@@ -1,7 +1,7 @@
 namespace Main.Services {
     export class Map {
         public layers: Phaser.TilemapLayer[] = [];
-        public collisionLayers: Phaser.TilemapLayer[] = [];
+        public collisionLayer: Phaser.TilemapLayer = null;
 
         public constructor(
             public map: Phaser.Tilemap,
@@ -14,8 +14,8 @@ namespace Main.Services {
             firstLayer.resizeWorld();
         }
 
-        public addLayer(layerIndex: number): Phaser.TilemapLayer {
-            const newLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
+        public addLayer(layerId: number | string): Phaser.TilemapLayer {
+            const newLayer: Phaser.TilemapLayer = this.map.createLayer(layerId);
             newLayer.setScale(this.tileScale, this.tileScale);
 
             this.layers.push(newLayer);
@@ -23,28 +23,48 @@ namespace Main.Services {
         }
 
         public addCollisionLayer(
-            layerIndex: number,
+            layerId: number | string,
             firstCollisionTileIndex: number = 1, 
-            lastCollisionTileIndex: number = 1
+            lastCollisionTileIndex: number = 1,
+            collisionGroup?: Phaser.Group
         ): Phaser.TilemapLayer {
-            const collisionLayer: Phaser.TilemapLayer = this.map.createLayer(layerIndex);
-            collisionLayer.setScale(this.tileScale, this.tileScale);
-
-            game.add.existing(collisionLayer);
-            // Physics have to be enabled for a collision layer to work...right?
-            game.physics.arcade.enable(collisionLayer);
-
+            const collisionLayer: Phaser.TilemapLayer = this.addLayer(layerId);
             this.map.setCollisionBetween(
                 firstCollisionTileIndex, 
                 lastCollisionTileIndex, 
                 true, 
-                collisionLayer
+                collisionLayer,
+                true
             );
-            
-            this.layers.push(collisionLayer);
-            this.collisionLayers.push(collisionLayer);
 
+            if (collisionGroup) {
+                // Assume that a collision group exists,
+                // and that it has or will have physics and collisions
+                // set up on it.
+                collisionGroup.add(collisionLayer);
+            } else {
+                game.physics.enable(collisionLayer, Phaser.Physics.ARCADE);
+                const body = <Phaser.Physics.Arcade.Body>collisionLayer.body;
+                body.immovable = true;
+            }
+
+            this.collisionLayer = collisionLayer;
             return collisionLayer;
+        }
+
+        public checkCollisionWith(other: any, onCollide?: () => void): void {
+            let collidingObject: ICollidableObject;
+            switch (other.constructor) {
+                case Entities.Mob:
+                    collidingObject = other.gameObject;
+                    break;
+
+                default:
+                    collidingObject = other;
+                    break;
+            }
+
+            game.physics.arcade.collide(this.collisionLayer, collidingObject, onCollide);
         }
     }
 
@@ -54,7 +74,8 @@ namespace Main.Services {
         }
 
         public loadMap(
-            key: string
+            key: string,
+            collisionGroup?: Phaser.Group
         ): Map {
             const data: any = game.cache.getJSON('map-data');
             const generationData = data['maps'].getByName(key);
@@ -67,13 +88,29 @@ namespace Main.Services {
             // Build layers from data...
             for (let currentLayer of generationData["layers"]) {
                 const index: number = currentLayer["index"];
-                if (currentLayer["type"]) {
-                    if (currentLayer["type"].toLowerCase() == "collision") {
+
+                switch (currentLayer["type"].toLowerCase()) {
+                    case "collision":
                         console.log(`Adding layer ${index} as a collision layer...`);
-                        result.addCollisionLayer(index, currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"]);
-                    }
-                } else {
-                    result.addLayer(index);
+                        if (!currentLayer["layerName"])
+                            result.addCollisionLayer(
+                                index, 
+                                currentLayer["startCollisionIndex"], 
+                                currentLayer["endCollisionIndex"], 
+                                collisionGroup
+                            );
+                        else
+                            result.addCollisionLayer(
+                                currentLayer["layerName"],
+                                currentLayer["startCollisionIndex"], 
+                                currentLayer["endCollisionIndex"], 
+                                collisionGroup
+                            );
+                        break;
+
+                    default:
+                        result.addLayer(index);
+                        break;
                 }
             }
             

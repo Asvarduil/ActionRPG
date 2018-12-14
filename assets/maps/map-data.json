@@ -9,12 +9,15 @@
             "layers": [
                 {
                     "index": 1,
+                    "layerName": "Collision",
                     "type": "collision",
-                    "startCollideIndex": 1,
-                    "endCollideIndex": 63
+                    "startCollisionIndex": 1,
+                    "endCollisionIndex": 63
                 },
                 {
-                    "index": 2
+                    "index": 2,
+                    "type": "tile",
+                    "layerName": "Overlay"
                 }
             ]
         }

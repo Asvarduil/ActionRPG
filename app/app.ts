@@ -1,6 +1,13 @@
 /// <reference path="../node_modules/phaser-ce/typescript/phaser.d.ts" />
 
 namespace Main {
+    export type ICollidableObject = Entities.Mob 
+                                    | Services.Map
+                                    | Phaser.Sprite 
+                                    | Phaser.Group 
+                                    | Phaser.Tilemap 
+                                    | Phaser.TilemapLayer;
+
     export var game: Phaser.Game = null;
     export var mapService: Services.MapService = null;
     export var stateService: Services.StateService = null;
