@@ -16,15 +16,16 @@ namespace Main.UI {
         foregroundColor?: string;
     }
 
-    export class ResourceGauge {
+    export class ResourceGauge implements INamed {
         private background: Phaser.Sprite = null;
         private foreground: Phaser.Sprite = null;
 
         public constructor(
+            public name: string,
             public x: number,
             public y: number,
-            public resource: Mechanics.Resource,
-            public style: IResourceGaugeStyleData
+            public style: IResourceGaugeStyleData,
+            public resource?: Mechanics.Resource,
         ) {
             const bgData = game.add.bitmapData(
                 style.backgroundWidth, 
@@ -86,19 +87,34 @@ namespace Main.UI {
                 bgWidth = this.style.backgroundWidth;
 
                 fgHeight = this.style.foregroundHeight;
-                const newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                let newWidth: number;
+                if (resource)
+                    newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                else
+                    newWidth = 0;
+
                 fgWidth = newWidth;
             } else {
                 bgWidth = this.style.backgroundWidth;
                 bgHeight = this.style.backgroundHeight;
                 
                 fgWidth = this.style.foregroundWidth;
-                const newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                let newHeight: number;
+                if (resource)
+                    newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                else
+                    newHeight = 0;
+
                 fgHeight = newHeight;
             }
 
             this.background.scale.setTo(bgWidth, bgHeight);
             this.foreground.scale.setTo(fgWidth, fgHeight);
+        }
+
+        public bindResource(resource: Mechanics.Resource): void {
+            this.resource = resource;
+            this.update();
         }
 
         public update(): void {
@@ -137,10 +153,11 @@ namespace Main.UI {
         }
 
         public create(
+            name: string,
             x: number,
             y: number,
-            resource: Mechanics.Resource,
-            style?: string
+            style?: string,
+            resource?: Mechanics.Resource
         ): ResourceGauge {
             let gaugeStyle: IResourceGaugeStyleData;
             if (!style) {
@@ -159,7 +176,7 @@ namespace Main.UI {
                 }
             }
             
-            const gauge = new ResourceGauge(x, y, resource, gaugeStyle);
+            const gauge = new ResourceGauge(name, x, y, gaugeStyle, resource);
             return gauge;
         }
     }

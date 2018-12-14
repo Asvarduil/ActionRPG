@@ -46,7 +46,7 @@ namespace Main.Entities {
 
         protected readyPhysics(): void {
             game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
-            this.gameObject.anchor.set(0.05, 0.05);
+            this.gameObject.anchor.set(0.1, 0.1);
 
             const body = this.body();
             body.bounce.setTo(0, 0);
@@ -161,7 +161,7 @@ namespace Main.Entities {
             let collidingObject: ICollidableObject;
             switch (other.constructor) {
                 case Mob:
-                    collidingObject = other.gameObject;
+                    collidingObject = <Mob>(other).gameObject;
                     break;
 
                 case Services.Map:

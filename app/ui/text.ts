@@ -1,5 +1,6 @@
 namespace Main.UI {
     export type INamedPhaserTextStyle = Phaser.PhaserTextStyle & INamed;
+    export type INamedPhaserText = Phaser.Text & INamed;
 
     export class TextFactory {
         public styles: INamedPhaserTextStyle[] = [];
@@ -17,11 +18,12 @@ namespace Main.UI {
         }
 
         public create(
+            name: string,
             x: number, 
             y: number, 
             text: string,
             style?: string
-        ): Phaser.Text {
+        ): INamedPhaserText {
             let styleData: INamedPhaserTextStyle;
             if (!style) {
                 styleData = JSON.parse(JSON.stringify(this.styles[0]));
@@ -29,8 +31,18 @@ namespace Main.UI {
                 styleData = JSON.parse(JSON.stringify(this.styles.getByName(style)));  
             }
   
-            const newText = game.add.text(x, y, text, styleData);
+            const newText: INamedPhaserText = game.add.text(x, y, text, styleData);
+            newText.name = name;
+
+            this.setSecondaryStyleData(<Phaser.Text>newText, styleData);
             return newText;
+        }
+
+        private setSecondaryStyleData(text: Phaser.Text, style: any): void {
+            if (style["alpha"]) {
+                const alpha: number = style["alpha"];
+                text.alpha = alpha;
+            }
         }
     }
 }

@@ -1,12 +1,15 @@
 namespace Main.States {
     export class GameState extends Phaser.State {
+        // TODO: Entity pools
+        // TODO: Global sprite scaling
         public map: Services.Map = null;
         public player: Entities.Player = null;
-        public skillUpLabel: Phaser.Text = null;
-        public healthGauge: UI.ResourceGauge = null;
-        public staminaGauge: UI.ResourceGauge = null;
+        public layout: UI.Layout = null;
 
         private npc: Entities.Mob = null;
+        private testTrigger: Entities.Trigger = null;
+
+        private exitTriggerEntered: boolean = false;
 
         public preload(): void {
         }
@@ -18,17 +21,23 @@ namespace Main.States {
 
             this.npc = new Entities.Mob(96, 192, 16, 'hero-male', 'template-animations', 3);
             this.player = new Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
+
+            this.testTrigger = new Entities.Trigger(16, 192, 16, 32, 3);
+
+            this.layout = new UI.Layout('game-ui');
             
-            this.skillUpLabel = textFactory.create(0, 0, '[Skill Up]');
-            this.skillUpLabel.alpha = 0;
-            this.skillUpLabel.fixedToCamera = true;
+            const skillUpLabel: Phaser.Text = <Phaser.Text>(this.layout.elements.getByName('skillUpLabel'));
+            skillUpLabel.alpha = 0;
+            skillUpLabel.fixedToCamera = true;
             this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
 
-            this.healthGauge = resourceGaugeFactory.create(2, 2, this.player.health, "Health");
+            const healthGauge: UI.ResourceGauge = <UI.ResourceGauge>(this.layout.elements.getByName('health'));
+            healthGauge.bindResource(this.player.health);
             this.player.health.onChange = this.onPlayerHealthChange.bind(this);
 
+            const staminaGauge: UI.ResourceGauge = <UI.ResourceGauge>(this.layout.elements.getByName('stamina'));
             const playerStamina = this.player.getResourceByName("Stamina");
-            this.staminaGauge = resourceGaugeFactory.create(438, 2, playerStamina, "Stamina");
+            staminaGauge.bindResource(playerStamina);
             playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
 
             cameraService.bindCamera(this.player);
@@ -36,12 +45,13 @@ namespace Main.States {
         }
 
         private onPlayerSkillUp(skill: Mechanics.SkillLine): void {
-            this.skillUpLabel.setText(`${skill.name} has increased to ${skill.level}`);
-            this.skillUpLabel.x = game.canvas.width / 2 - this.skillUpLabel.width / 2;
-            this.skillUpLabel.y = 100
-            this.skillUpLabel.fixedToCamera = true;
+            const skillUpLabel: Phaser.Text = <Phaser.Text>(this.layout.elements.getByName('skillUpLabel'));
+            skillUpLabel.setText(`${skill.name} has increased to ${skill.level}`);
+            skillUpLabel.x = game.canvas.width / 2 - skillUpLabel.width / 2;
+            skillUpLabel.y = 100
+            skillUpLabel.fixedToCamera = true;
 
-            game.add.tween(this.skillUpLabel).to(
+            game.add.tween(skillUpLabel).to(
                 {alpha: 1},
                 500,
                 Phaser.Easing.Linear.None,
@@ -49,7 +59,7 @@ namespace Main.States {
             );
 
             game.time.events.add(3000, () => {
-                game.add.tween(this.skillUpLabel).to(
+                game.add.tween(skillUpLabel).to(
                     {alpha: 0},
                     500,
                     Phaser.Easing.Linear.None,
@@ -59,11 +69,13 @@ namespace Main.States {
         }
 
         private onPlayerHealthChange(): void {
-            this.healthGauge.update();
+            const healthGauge: UI.ResourceGauge = <UI.ResourceGauge>(this.layout.elements.getByName('health'));
+            healthGauge.update();
         }
 
         private onPlayerStaminaChange(): void {
-            this.staminaGauge.update();
+            const staminaGauge: UI.ResourceGauge = <UI.ResourceGauge>(this.layout.elements.getByName('stamina'));
+            staminaGauge.update();
         }
 
         public update(): void {
@@ -73,6 +85,21 @@ namespace Main.States {
             this.player.checkCollisionWith(this.npc);
             this.player.checkCollisionWith(this.map);
             this.npc.checkCollisionWith(this.map);
+
+            this.testTrigger.checkOverlapsWith(this.player, () => {
+                console.log(`Overlap detected!`);
+                if (this.exitTriggerEntered === true)
+                    return;
+
+                this.exitTriggerEntered = true;
+                cameraService.fadeOut(() => {
+                    stateService.load('title');
+                });
+            });
+        }
+
+        public render(): void {
+            game.debug.body(this.testTrigger.gameObject);
         }
     }
 }

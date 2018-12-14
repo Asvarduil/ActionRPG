@@ -9,6 +9,9 @@ namespace Main.States {
             // Used by UI factories
             game.load.json('ui-styles', 'assets/ui/styles.json');
 
+            // Used to auto-create UIs
+            game.load.json('ui-layouts', 'assets/ui/layouts.json');
+
             // Used by the Map Service to build maps on the fly without hardcoding every single map.
             game.load.json('map-data', 'assets/maps/map-data.json');
 

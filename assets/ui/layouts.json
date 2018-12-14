@@ -1,0 +1,30 @@
+{
+    "layouts": [
+        {
+            "name": "game-ui",
+            "elements": [
+                {
+                    "type": "gauge",
+                    "name": "health",
+                    "x": 2,
+                    "y": 2,
+                    "style": "Health"
+                },
+                {
+                    "type": "gauge",
+                    "name": "stamina",
+                    "x": 438,
+                    "y": 2,
+                    "style": "Stamina"
+                },
+                {
+                    "type": "text",
+                    "name": "skillUpLabel",
+                    "x": 0,
+                    "y": 0,
+                    "style": "Hidden"
+                }
+            ]
+        }
+    ]
+}

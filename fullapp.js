@@ -90,25 +90,19 @@ var Main;
                 this.gameObject = Main.game.add.tileSprite(x, y, tileSize, tileSize, imageKey);
                 this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
                 if (enablePhysics) {
-                    this.readyPhysics(tileSize);
+                    this.readyPhysics();
                 }
                 // Bind animations...
                 this.addAnimationsFromFile(animationKey);
             }
-            Mob.prototype.readyPhysics = function (tileSize) {
-                // Programmer's Notes...
-                // http://examples.phaser.io/_site/view_full.html?d=tilemaps&f=tile+callbacks.js&t=tile%20callbacks
-                // Physics must be enabled, anchors set, and the body must be sized with an offset, for the hitbox.
-                // TODO:
-                // Tear this out, and integrate from this: https://gamedevacademy.org/html5-phaser-tutorial-top-down-games-with-tiled/
+            Mob.prototype.readyPhysics = function () {
                 Main.game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
-                this.gameObject.anchor.set(0.5, 0.5);
+                this.gameObject.anchor.set(0.1, 0.1);
                 var body = this.body();
                 body.bounce.setTo(0, 0);
                 body.collideWorldBounds = true;
                 body.allowDrag = true;
                 body.angularDrag = 1.0;
-                //this.body().tilePadding.set(8);
             };
             Mob.prototype.body = function () {
                 return this.gameObject.body;
@@ -187,7 +181,7 @@ var Main;
                 var collidingObject;
                 switch (other.constructor) {
                     case Mob:
-                        collidingObject = other.gameObject;
+                        collidingObject = (other).gameObject;
                         break;
                     case Main.Services.Map:
                         collidingObject = (other).collisionLayer;
@@ -276,6 +270,47 @@ var Main;
             return Player;
         }(Entities.Mob));
         Entities.Player = Player;
+    })(Entities = Main.Entities || (Main.Entities = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Entities;
+    (function (Entities) {
+        var Trigger = /** @class */ (function () {
+            function Trigger(x, y, width, height, spriteScale) {
+                if (spriteScale === void 0) { spriteScale = 1; }
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.gameObject = null;
+                var spriteData = Main.game.add.bitmapData(width, height).fill(0, 0, 0, 0);
+                this.gameObject = Main.game.add.sprite(x, y, spriteData);
+                this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
+                this.readyPhysics();
+            }
+            Trigger.prototype.readyPhysics = function () {
+                Main.game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
+                this.gameObject.anchor.set(0.5, 0.5);
+            };
+            Trigger.prototype.body = function () {
+                return this.gameObject.body;
+            };
+            Trigger.prototype.checkOverlapsWith = function (other, onStay) {
+                var collidableObject;
+                switch (other.constructor) {
+                    case Entities.Mob:
+                        collidableObject = (other).gameObject;
+                        break;
+                    default:
+                        collidableObject = other;
+                        break;
+                }
+                Main.game.physics.arcade.overlap(this.gameObject, other, onStay);
+            };
+            return Trigger;
+        }());
+        Entities.Trigger = Trigger;
     })(Entities = Main.Entities || (Main.Entities = {}));
 })(Main || (Main = {}));
 Array.prototype.getByName = function (name) {
@@ -901,12 +936,14 @@ var Main;
             __extends(GameState, _super);
             function GameState() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
+                // TODO: Entity pools
+                // TODO: Global sprite scaling
                 _this.map = null;
                 _this.player = null;
-                _this.skillUpLabel = null;
-                _this.healthGauge = null;
-                _this.staminaGauge = null;
+                _this.layout = null;
                 _this.npc = null;
+                _this.testTrigger = null;
+                _this.exitTriggerEntered = false;
                 return _this;
             }
             GameState.prototype.preload = function () {
@@ -914,49 +951,62 @@ var Main;
             GameState.prototype.create = function () {
                 Main.game.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = Main.mapService.loadMap('overworld');
-                this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
                 this.npc = new Main.Entities.Mob(96, 192, 16, 'hero-male', 'template-animations', 3);
-                this.skillUpLabel = Main.textFactory.create(0, 0, '[Skill Up]');
-                this.skillUpLabel.alpha = 0;
-                this.skillUpLabel.fixedToCamera = true;
+                this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
+                this.testTrigger = new Main.Entities.Trigger(16, 192, 16, 32, 3);
+                this.layout = new Main.UI.Layout('game-ui');
+                var skillUpLabel = (this.layout.elements.getByName('skillUpLabel'));
+                skillUpLabel.alpha = 0;
+                skillUpLabel.fixedToCamera = true;
                 this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
-                this.healthGauge = Main.resourceGaugeFactory.create(2, 2, this.player.health, "Health");
+                var healthGauge = (this.layout.elements.getByName('health'));
+                healthGauge.bindResource(this.player.health);
                 this.player.health.onChange = this.onPlayerHealthChange.bind(this);
+                var staminaGauge = (this.layout.elements.getByName('stamina'));
                 var playerStamina = this.player.getResourceByName("Stamina");
-                this.staminaGauge = Main.resourceGaugeFactory.create(438, 2, playerStamina, "Stamina");
+                staminaGauge.bindResource(playerStamina);
                 playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
             };
             GameState.prototype.onPlayerSkillUp = function (skill) {
-                var _this = this;
-                this.skillUpLabel.setText(skill.name + " has increased to " + skill.level);
-                this.skillUpLabel.x = Main.game.canvas.width / 2 - this.skillUpLabel.width / 2;
-                this.skillUpLabel.y = 100;
-                this.skillUpLabel.fixedToCamera = true;
-                Main.game.add.tween(this.skillUpLabel).to({ alpha: 1 }, 500, Phaser.Easing.Linear.None, true);
+                var skillUpLabel = (this.layout.elements.getByName('skillUpLabel'));
+                skillUpLabel.setText(skill.name + " has increased to " + skill.level);
+                skillUpLabel.x = Main.game.canvas.width / 2 - skillUpLabel.width / 2;
+                skillUpLabel.y = 100;
+                skillUpLabel.fixedToCamera = true;
+                Main.game.add.tween(skillUpLabel).to({ alpha: 1 }, 500, Phaser.Easing.Linear.None, true);
                 Main.game.time.events.add(3000, function () {
-                    Main.game.add.tween(_this.skillUpLabel).to({ alpha: 0 }, 500, Phaser.Easing.Linear.None, true);
+                    Main.game.add.tween(skillUpLabel).to({ alpha: 0 }, 500, Phaser.Easing.Linear.None, true);
                 });
             };
             GameState.prototype.onPlayerHealthChange = function () {
-                this.healthGauge.update();
+                var healthGauge = (this.layout.elements.getByName('health'));
+                healthGauge.update();
             };
             GameState.prototype.onPlayerStaminaChange = function () {
-                this.staminaGauge.update();
+                var staminaGauge = (this.layout.elements.getByName('stamina'));
+                staminaGauge.update();
             };
             GameState.prototype.update = function () {
+                var _this = this;
                 var deltaTime = this.game.time.physicsElapsed;
                 this.player.onUpdate(deltaTime);
                 this.player.checkCollisionWith(this.npc);
                 this.player.checkCollisionWith(this.map);
+                this.npc.checkCollisionWith(this.map);
+                this.testTrigger.checkOverlapsWith(this.player, function () {
+                    console.log("Overlap detected!");
+                    if (_this.exitTriggerEntered === true)
+                        return;
+                    _this.exitTriggerEntered = true;
+                    Main.cameraService.fadeOut(function () {
+                        Main.stateService.load('title');
+                    });
+                });
             };
             GameState.prototype.render = function () {
-                // The player is appearing within the blue region of the collision layer.
-                // I don't think this is correct - I think each collidable tile should be blue.
-                //game.debug.body(this.map.collisionLayer, '#369');
-                //game.debug.body(this.player.gameObject, '#FFF');
-                Main.game.debug.bodyInfo(this.player.gameObject, 2, 48, '#FFF');
+                Main.game.debug.body(this.testTrigger.gameObject);
             };
             return GameState;
         }(Phaser.State));
@@ -979,6 +1029,8 @@ var Main;
                 Main.game.load.spritesheet('hero-male', 'assets/images/hero-male.png', 16, 16);
                 // Used by UI factories
                 Main.game.load.json('ui-styles', 'assets/ui/styles.json');
+                // Used to auto-create UIs
+                Main.game.load.json('ui-layouts', 'assets/ui/layouts.json');
                 // Used by the Map Service to build maps on the fly without hardcoding every single map.
                 Main.game.load.json('map-data', 'assets/maps/map-data.json');
                 // Used by the Entity system to set up mob stats, also without hardcoding every single one.
@@ -1047,11 +1099,12 @@ var Main;
     var UI;
     (function (UI) {
         var ResourceGauge = /** @class */ (function () {
-            function ResourceGauge(x, y, resource, style) {
+            function ResourceGauge(name, x, y, style, resource) {
+                this.name = name;
                 this.x = x;
                 this.y = y;
-                this.resource = resource;
                 this.style = style;
+                this.resource = resource;
                 this.background = null;
                 this.foreground = null;
                 var bgData = Main.game.add.bitmapData(style.backgroundWidth, style.backgroundHeight);
@@ -1085,19 +1138,31 @@ var Main;
                     bgHeight = this.style.backgroundHeight;
                     bgWidth = this.style.backgroundWidth;
                     fgHeight = this.style.foregroundHeight;
-                    var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                    var newWidth = void 0;
+                    if (resource)
+                        newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
+                    else
+                        newWidth = 0;
                     fgWidth = newWidth;
                 }
                 else {
                     bgWidth = this.style.backgroundWidth;
                     bgHeight = this.style.backgroundHeight;
                     fgWidth = this.style.foregroundWidth;
-                    var newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                    var newHeight = void 0;
+                    if (resource)
+                        newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
+                    else
+                        newHeight = 0;
                     fgHeight = newHeight;
                 }
                 this.background.scale.setTo(bgWidth, bgHeight);
                 this.foreground.scale.setTo(fgWidth, fgHeight);
             }
+            ResourceGauge.prototype.bindResource = function (resource) {
+                this.resource = resource;
+                this.update();
+            };
             ResourceGauge.prototype.update = function () {
                 if (this.style.isHorizontal) {
                     var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
@@ -1123,7 +1188,7 @@ var Main;
                     this.styles.push(current);
                 }
             };
-            ResourceGaugeFactory.prototype.create = function (x, y, resource, style) {
+            ResourceGaugeFactory.prototype.create = function (name, x, y, style, resource) {
                 var gaugeStyle;
                 if (!style) {
                     if (this.styles.length === 0) {
@@ -1140,12 +1205,50 @@ var Main;
                         return null;
                     }
                 }
-                var gauge = new ResourceGauge(x, y, resource, gaugeStyle);
+                var gauge = new ResourceGauge(name, x, y, gaugeStyle, resource);
                 return gauge;
             };
             return ResourceGaugeFactory;
         }());
         UI.ResourceGaugeFactory = ResourceGaugeFactory;
+    })(UI = Main.UI || (Main.UI = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var UI;
+    (function (UI) {
+        var Layout = /** @class */ (function () {
+            function Layout(layoutKey) {
+                this.elements = [];
+                this.generateElements(layoutKey);
+            }
+            Layout.prototype.generateElements = function (layoutKey) {
+                var layoutData = Main.game.cache.getJSON('ui-layouts');
+                var chosenLayout = (layoutData['layouts'].getByName(layoutKey));
+                if (chosenLayout == null) {
+                    console.error("UI Layout " + layoutKey + " doesn't exist in the layouts JSON file.");
+                    return;
+                }
+                for (var _i = 0, _a = chosenLayout.elements; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    switch (current.type) {
+                        case "text":
+                            var newText = Main.textFactory.create(current.name, current.x, current.y, current.style);
+                            this.elements.push(newText);
+                            break;
+                        case "gauge":
+                            var newGauge = Main.resourceGaugeFactory.create(current.name, current.x, current.y, current.style);
+                            this.elements.push(newGauge);
+                            break;
+                        default:
+                            console.warn("Element " + current.name + " won't be added, as element type " + current.type + " has no generation behavior defined.");
+                            break;
+                    }
+                }
+            };
+            return Layout;
+        }());
+        UI.Layout = Layout;
     })(UI = Main.UI || (Main.UI = {}));
 })(Main || (Main = {}));
 var Main;
@@ -1293,7 +1396,7 @@ var Main;
                     this.styles.push(current);
                 }
             };
-            TextFactory.prototype.create = function (x, y, text, style) {
+            TextFactory.prototype.create = function (name, x, y, text, style) {
                 var styleData;
                 if (!style) {
                     styleData = JSON.parse(JSON.stringify(this.styles[0]));
@@ -1302,7 +1405,15 @@ var Main;
                     styleData = JSON.parse(JSON.stringify(this.styles.getByName(style)));
                 }
                 var newText = Main.game.add.text(x, y, text, styleData);
+                newText.name = name;
+                this.setSecondaryStyleData(newText, styleData);
                 return newText;
+            };
+            TextFactory.prototype.setSecondaryStyleData = function (text, style) {
+                if (style["alpha"]) {
+                    var alpha = style["alpha"];
+                    text.alpha = alpha;
+                }
             };
             return TextFactory;
         }());

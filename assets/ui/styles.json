@@ -5,6 +5,13 @@
             "fill": "#FFF",
             "stroke": "#666",
             "strokeThickness": "1"
+        },
+        {
+            "name": "hidden",
+            "fill": "#FFF",
+            "alpha": 0,
+            "stroke": "#333",
+            "strokeThickness": "1"
         }
     ],
     "menu": {
