@@ -120,20 +120,10 @@ namespace Main.UI {
         public update(): void {
             if (this.style.isHorizontal) {
                 const newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
-                game.add.tween(this.foreground.scale).to(
-                    { 'x': newWidth },
-                    500,
-                    Phaser.Easing.Linear.None,
-                    true
-                );
+                this.foreground.scale.x = newWidth;
             } else {
                 const newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
-                game.add.tween(this.foreground.scale).to(
-                    { 'y': newHeight },
-                    500,
-                    Phaser.Easing.Linear.None,
-                    true
-                );
+                this.foreground.scale.y = newHeight;
             }
         }
     }

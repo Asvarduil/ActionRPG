@@ -2,11 +2,14 @@
 
 namespace Main {
     export type ICollidableObject = Entities.Mob 
+                                    | Entities.Player
                                     | Services.Map
                                     | Phaser.Sprite 
                                     | Phaser.Group 
                                     | Phaser.Tilemap 
                                     | Phaser.TilemapLayer;
+
+    export var gfxMagnification: number = 3;
 
     export var game: Phaser.Game = null;
     export var mapService: Services.MapService = null;

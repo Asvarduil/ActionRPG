@@ -6,7 +6,25 @@ namespace Main.Entities {
         UP
     }
 
-    export class Mob {
+    export interface IMobMetaData extends INamed {
+        name: string,
+        isPlayerCharacter?: boolean,
+        imageKey: string,
+        animationKey: string,
+        tileSize: number,
+        aiScript?: string
+    }
+
+    export interface IMobStatData extends INamed {
+        name: string,
+        maxHP: number,
+        resources: {name: string, max: number}[],
+        stats: {name: string, value: number}[]
+    }
+
+    export class Mob implements INamed {
+        public isActive: boolean = true;
+        public mobType: string = '';
         public gameObject: Phaser.TileSprite = null;
         public direction: EntityDirections = EntityDirections.DOWN;
 
@@ -18,6 +36,7 @@ namespace Main.Entities {
         public onSkillUp: (skill: Mechanics.SkillLine) => void;
 
         public constructor(
+            public name: string,
             x: number,
             y: number,
             tileSize: number,
@@ -46,7 +65,7 @@ namespace Main.Entities {
 
         protected readyPhysics(): void {
             game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
-            this.gameObject.anchor.set(0.1, 0.1);
+            this.gameObject.anchor.set(0.5, 0.5);
 
             const body = this.body();
             body.bounce.setTo(0, 0);
@@ -71,25 +90,28 @@ namespace Main.Entities {
         public onUpdate(deltaTime: number): void {
         }
 
-        public setStatsFromFile(entityTypeName: string): void {
-            const data = game.cache.getJSON('entity-stats');
-            const entityData: any = data["entities"].getByName(entityTypeName);
+        public setStatsFromData(
+            data: IMobStatData, 
+            mobType?: string
+        ): void {
+            if (mobType)
+                this.mobType = mobType;
 
-            // Overwrite stats based on the data for the type of mob.
-            this.health = new Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-            for (let current of entityData["resources"]) {
+            this.health = new Mechanics.HealthSystem(data.maxHP, this.onHealed, this.onHurt, this.onDeath);
+
+            for (let current of data.resources) {
                 const loadedResource = new Mechanics.Resource(
-                    current["name"],
-                    current["max"]
+                    current.name,
+                    current.max
                 );
 
                 this.resources.push(loadedResource);
             }
 
-            for (let current of entityData["stats"]) {
+            for (let current of data.stats) {
                 const loadedStat = new Mechanics.ModifiableStat(
-                    current["name"],
-                    current["value"]
+                    current.name,
+                    current.value
                 );
 
                 this.stats.push(loadedStat);
@@ -97,7 +119,6 @@ namespace Main.Entities {
         }
 
         public addAnimationsFromFile(jsonKey: string): Phaser.Animation[] {
-            // Data should be pre-loaded with this.game.load.json().
             const data = game.cache.getJSON(jsonKey);
 
             const result: Phaser.Animation[] = [];

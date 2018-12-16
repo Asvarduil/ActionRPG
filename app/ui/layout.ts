@@ -12,11 +12,17 @@ namespace Main.UI {
         elements: IUILayoutElement[]
     }
 
+    export type ILayoutElement = INamedPhaserText | ResourceGauge
+
     export class Layout {
-        public elements: (INamedPhaserText | ResourceGauge)[] = [];
+        public elements: ILayoutElement[] = [];
 
         public constructor(layoutKey: string) {
             this.generateElements(layoutKey);
+        }
+
+        public getElement(elementKey: string): ILayoutElement {
+            return <ILayoutElement>this.elements.getByName(elementKey);
         }
 
         public generateElements(layoutKey: string): void {

@@ -2,6 +2,10 @@
     "entities": [
         {
             "name": "player",
+            "isPlayerCharacter": true,
+            "imageKey": "hero-male",
+            "animationKey": "template-animations",
+            "tileSize": 16,
             "maxHP": 12,
             "resources": [
                 {
@@ -20,7 +24,35 @@
                 },
                 {
                     "name": "Stamina Regen",
-                    "value": 0.4
+                    "value": 0.3
+                }
+            ]
+        },
+        {
+            "name": "npc",
+            "isPlayerCharacter": false,
+            "imageKey": "hero-male",
+            "animationKey": "template-animations",
+            "tileSize": 16,
+            "maxHP": 12,
+            "resources": [
+                {
+                    "name": "Stamina",
+                    "max": 100
+                }
+            ],
+            "stats": [
+                {
+                    "name": "speed",
+                    "value": 75
+                },
+                {
+                    "name": "Dash Cost",
+                    "value": 40
+                },
+                {
+                    "name": "Stamina Regen",
+                    "value": 0.3
                 }
             ]
         }

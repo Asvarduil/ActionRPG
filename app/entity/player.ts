@@ -1,17 +1,27 @@
 namespace Main.Entities {
     export class Player extends Mob {
         public constructor(
+            name: string,
             x: number,
             y: number,
+            tileSize: number,
             imageKey: string,
             animationKey: string,
+            statData: IMobStatData,
             spriteScale: number
         ) {
-            super(x, y, 16, imageKey, animationKey, spriteScale, true);
+            super(
+                name, 
+                x, 
+                y, 
+                tileSize, 
+                imageKey, 
+                animationKey, 
+                spriteScale, 
+                true
+            );
 
-            this.setStatsFromFile('player');
-            // TODO: Overwrite the defaults with stats from the player state store instead.
-            //       This will also cover skill line levels, and other things.
+            this.setStatsFromData(statData);
         }
 
         public onUpdate(deltaTime: number): void {

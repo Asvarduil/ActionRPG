@@ -12,6 +12,7 @@ var __extends = (this && this.__extends) || (function () {
 /// <reference path="../node_modules/phaser-ce/typescript/phaser.d.ts" />
 var Main;
 (function (Main) {
+    Main.gfxMagnification = 3;
     Main.game = null;
     Main.mapService = null;
     Main.stateService = null;
@@ -72,11 +73,14 @@ var Main;
             EntityDirections[EntityDirections["UP"] = 3] = "UP";
         })(EntityDirections = Entities.EntityDirections || (Entities.EntityDirections = {}));
         var Mob = /** @class */ (function () {
-            function Mob(x, y, tileSize, imageKey, animationKey, spriteScale, enablePhysics, frameRate) {
+            function Mob(name, x, y, tileSize, imageKey, animationKey, spriteScale, enablePhysics, frameRate) {
                 if (spriteScale === void 0) { spriteScale = 1; }
                 if (enablePhysics === void 0) { enablePhysics = true; }
                 if (frameRate === void 0) { frameRate = 8; }
+                this.name = name;
                 this.frameRate = frameRate;
+                this.isActive = true;
+                this.mobType = '';
                 this.gameObject = null;
                 this.direction = EntityDirections.DOWN;
                 this.health = null;
@@ -97,7 +101,7 @@ var Main;
             }
             Mob.prototype.readyPhysics = function () {
                 Main.game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
-                this.gameObject.anchor.set(0.1, 0.1);
+                this.gameObject.anchor.set(0.5, 0.5);
                 var body = this.body();
                 body.bounce.setTo(0, 0);
                 body.collideWorldBounds = true;
@@ -115,24 +119,22 @@ var Main;
             };
             Mob.prototype.onUpdate = function (deltaTime) {
             };
-            Mob.prototype.setStatsFromFile = function (entityTypeName) {
-                var data = Main.game.cache.getJSON('entity-stats');
-                var entityData = data["entities"].getByName(entityTypeName);
-                // Overwrite stats based on the data for the type of mob.
-                this.health = new Main.Mechanics.HealthSystem(entityData["maxHP"], this.onHealed, this.onHurt, this.onDeath);
-                for (var _i = 0, _a = entityData["resources"]; _i < _a.length; _i++) {
+            Mob.prototype.setStatsFromData = function (data, mobType) {
+                if (mobType)
+                    this.mobType = mobType;
+                this.health = new Main.Mechanics.HealthSystem(data.maxHP, this.onHealed, this.onHurt, this.onDeath);
+                for (var _i = 0, _a = data.resources; _i < _a.length; _i++) {
                     var current = _a[_i];
-                    var loadedResource = new Main.Mechanics.Resource(current["name"], current["max"]);
+                    var loadedResource = new Main.Mechanics.Resource(current.name, current.max);
                     this.resources.push(loadedResource);
                 }
-                for (var _b = 0, _c = entityData["stats"]; _b < _c.length; _b++) {
+                for (var _b = 0, _c = data.stats; _b < _c.length; _b++) {
                     var current = _c[_b];
-                    var loadedStat = new Main.Mechanics.ModifiableStat(current["name"], current["value"]);
+                    var loadedStat = new Main.Mechanics.ModifiableStat(current.name, current.value);
                     this.stats.push(loadedStat);
                 }
             };
             Mob.prototype.addAnimationsFromFile = function (jsonKey) {
-                // Data should be pre-loaded with this.game.load.json().
                 var data = Main.game.cache.getJSON(jsonKey);
                 var result = [];
                 for (var _i = 0, _a = data.animations; _i < _a.length; _i++) {
@@ -201,14 +203,86 @@ var Main;
 (function (Main) {
     var Entities;
     (function (Entities) {
+        var MobPool = /** @class */ (function () {
+            function MobPool() {
+                this.entityData = [];
+                this.mobs = [];
+                var rawData = Main.game.cache.getJSON('entity-stats');
+                this.entityData = rawData['entities'];
+            }
+            MobPool.prototype.getByName = function (name) {
+                return this.mobs.getByName(name);
+            };
+            MobPool.prototype.getFirstInactive = function () {
+                var result = null;
+                for (var _i = 0, _a = this.mobs; _i < _a.length; _i++) {
+                    var current = _a[_i];
+                    if (current.isActive)
+                        continue;
+                    result = current;
+                    break;
+                }
+                return result;
+            };
+            MobPool.prototype.add = function (name, mobType, x, y, dontOverwriteExisting) {
+                if (dontOverwriteExisting === void 0) { dontOverwriteExisting = false; }
+                var existingEntry = this.getFirstInactive();
+                if (!existingEntry || dontOverwriteExisting) {
+                    var newEntry = this.create(name, mobType, x, y);
+                    this.mobs.push(newEntry);
+                    return newEntry;
+                }
+                else {
+                    existingEntry = this.create(name, mobType, x, y);
+                    return existingEntry;
+                }
+            };
+            MobPool.prototype.create = function (name, mobType, x, y) {
+                var data = this.entityData.getByName(mobType);
+                var mobData = data;
+                var statData = data;
+                var newMob;
+                if (!mobData.isPlayerCharacter) {
+                    newMob = new Entities.Mob(name, x, y, mobData.tileSize, mobData.imageKey, mobData.animationKey, Main.gfxMagnification);
+                    newMob.setStatsFromData(statData);
+                }
+                else {
+                    newMob = new Entities.Player(name, x, y, mobData.tileSize, mobData.imageKey, mobData.animationKey, statData, Main.gfxMagnification);
+                }
+                return newMob;
+            };
+            MobPool.prototype.inactivate = function (mobName) {
+                var mob = this.getByName(mobName);
+                if (!mob) {
+                    console.error("Can't inactivate mob " + mobName + ", as they don't exist in the pool.");
+                    return;
+                }
+                mob.gameObject.alive = false;
+            };
+            MobPool.prototype.remove = function (mobName) {
+                var removeMob = this.inactivate(mobName);
+                var index = this.mobs.indexOf(removeMob);
+                if (index === -1) {
+                    console.error("Can't remove " + mobName + " from the mob pool as they're not registered in it.");
+                    return;
+                }
+                this.mobs.splice(index, 1);
+            };
+            return MobPool;
+        }());
+        Entities.MobPool = MobPool;
+    })(Entities = Main.Entities || (Main.Entities = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Entities;
+    (function (Entities) {
         var Player = /** @class */ (function (_super) {
             __extends(Player, _super);
-            function Player(x, y, imageKey, animationKey, spriteScale) {
-                var _this = _super.call(this, x, y, 16, imageKey, animationKey, spriteScale, true) || this;
-                _this.setStatsFromFile('player');
+            function Player(name, x, y, tileSize, imageKey, animationKey, statData, spriteScale) {
+                var _this = _super.call(this, name, x, y, tileSize, imageKey, animationKey, spriteScale, true) || this;
+                _this.setStatsFromData(statData);
                 return _this;
-                // TODO: Overwrite the defaults with stats from the player state store instead.
-                //       This will also cover skill line levels, and other things.
             }
             Player.prototype.onUpdate = function (deltaTime) {
                 var hAxis = Main.inputService.getAxis('horizontal').value();
@@ -277,36 +351,46 @@ var Main;
     var Entities;
     (function (Entities) {
         var Trigger = /** @class */ (function () {
-            function Trigger(x, y, width, height, spriteScale) {
-                if (spriteScale === void 0) { spriteScale = 1; }
+            function Trigger(x, y, width, height, onEnter) {
                 this.x = x;
                 this.y = y;
                 this.width = width;
                 this.height = height;
+                this.onEnter = onEnter;
                 this.gameObject = null;
+                this.isTriggered = false;
                 var spriteData = Main.game.add.bitmapData(width, height).fill(0, 0, 0, 0);
                 this.gameObject = Main.game.add.sprite(x, y, spriteData);
-                this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
+                this.gameObject.scale = new Phaser.Point(Main.gfxMagnification, Main.gfxMagnification);
                 this.readyPhysics();
             }
             Trigger.prototype.readyPhysics = function () {
                 Main.game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
                 this.gameObject.anchor.set(0.5, 0.5);
+                var body = this.body();
+                body.immovable = true;
+                body.bounce.setTo(0);
+                body.collideWorldBounds = true;
             };
             Trigger.prototype.body = function () {
                 return this.gameObject.body;
             };
-            Trigger.prototype.checkOverlapsWith = function (other, onStay) {
+            Trigger.prototype.checkOverlapsWith = function (other) {
                 var collidableObject;
                 switch (other.constructor) {
                     case Entities.Mob:
+                    case Entities.Player:
+                        console.log("Detecting overlap with a Mob...");
                         collidableObject = (other).gameObject;
                         break;
                     default:
+                        console.log("Trigger detected object type: " + JSON.stringify(other.constructor));
                         collidableObject = other;
                         break;
                 }
-                Main.game.physics.arcade.overlap(this.gameObject, other, onStay);
+                //game.physics.arcade.overlap(this.gameObject, collidableObject, this.onStay);
+                // HACK: Have to use collision, overlap does not work.
+                this.isTriggered = Main.game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
             };
             return Trigger;
         }());
@@ -941,9 +1025,9 @@ var Main;
                 _this.map = null;
                 _this.player = null;
                 _this.layout = null;
+                _this.mobPool = null;
                 _this.npc = null;
                 _this.testTrigger = null;
-                _this.exitTriggerEntered = false;
                 return _this;
             }
             GameState.prototype.preload = function () {
@@ -951,26 +1035,36 @@ var Main;
             GameState.prototype.create = function () {
                 Main.game.physics.startSystem(Phaser.Physics.ARCADE);
                 this.map = Main.mapService.loadMap('overworld');
-                this.npc = new Main.Entities.Mob(96, 192, 16, 'hero-male', 'template-animations', 3);
-                this.player = new Main.Entities.Player(96, 96, 'hero-male', 'template-animations', 3);
-                this.testTrigger = new Main.Entities.Trigger(16, 192, 16, 32, 3);
+                this.mobPool = new Main.Entities.MobPool();
+                this.player = this.mobPool.add('player', 'player', 96, 96);
+                this.npc = this.mobPool.add('npc', 'npc', 96, 192);
+                this.testTrigger = new Main.Entities.Trigger(16, 192, 16, 32, this.onEnterSceneChangeTrigger.bind(this));
                 this.layout = new Main.UI.Layout('game-ui');
-                var skillUpLabel = (this.layout.elements.getByName('skillUpLabel'));
+                var skillUpLabel = (this.layout.getElement('skillUpLabel'));
                 skillUpLabel.alpha = 0;
                 skillUpLabel.fixedToCamera = true;
                 this.player.onSkillUp = this.onPlayerSkillUp.bind(this);
-                var healthGauge = (this.layout.elements.getByName('health'));
+                var healthGauge = this.layout.getElement('health');
                 healthGauge.bindResource(this.player.health);
                 this.player.health.onChange = this.onPlayerHealthChange.bind(this);
-                var staminaGauge = (this.layout.elements.getByName('stamina'));
+                var staminaGauge = (this.layout.getElement('stamina'));
                 var playerStamina = this.player.getResourceByName("Stamina");
                 staminaGauge.bindResource(playerStamina);
                 playerStamina.onChange = this.onPlayerStaminaChange.bind(this);
                 Main.cameraService.bindCamera(this.player);
                 Main.cameraService.fadeIn(function () { });
             };
+            GameState.prototype.onEnterSceneChangeTrigger = function () {
+                console.log("Overlap detected!");
+                if (this.testTrigger.isTriggered === true)
+                    return;
+                console.log("Fading to title...");
+                Main.cameraService.fadeOut(function () {
+                    Main.stateService.load('title');
+                });
+            };
             GameState.prototype.onPlayerSkillUp = function (skill) {
-                var skillUpLabel = (this.layout.elements.getByName('skillUpLabel'));
+                var skillUpLabel = (this.layout.getElement('skillUpLabel'));
                 skillUpLabel.setText(skill.name + " has increased to " + skill.level);
                 skillUpLabel.x = Main.game.canvas.width / 2 - skillUpLabel.width / 2;
                 skillUpLabel.y = 100;
@@ -981,32 +1075,24 @@ var Main;
                 });
             };
             GameState.prototype.onPlayerHealthChange = function () {
-                var healthGauge = (this.layout.elements.getByName('health'));
+                var healthGauge = (this.layout.getElement('health'));
                 healthGauge.update();
             };
             GameState.prototype.onPlayerStaminaChange = function () {
-                var staminaGauge = (this.layout.elements.getByName('stamina'));
+                var staminaGauge = (this.layout.getElement('stamina'));
                 staminaGauge.update();
             };
             GameState.prototype.update = function () {
-                var _this = this;
                 var deltaTime = this.game.time.physicsElapsed;
                 this.player.onUpdate(deltaTime);
                 this.player.checkCollisionWith(this.npc);
                 this.player.checkCollisionWith(this.map);
                 this.npc.checkCollisionWith(this.map);
-                this.testTrigger.checkOverlapsWith(this.player, function () {
-                    console.log("Overlap detected!");
-                    if (_this.exitTriggerEntered === true)
-                        return;
-                    _this.exitTriggerEntered = true;
-                    Main.cameraService.fadeOut(function () {
-                        Main.stateService.load('title');
-                    });
-                });
+                this.testTrigger.checkOverlapsWith(this.player);
             };
             GameState.prototype.render = function () {
                 Main.game.debug.body(this.testTrigger.gameObject);
+                Main.game.debug.bodyInfo(this.testTrigger.gameObject, 2, 48);
             };
             return GameState;
         }(Phaser.State));
@@ -1166,11 +1252,11 @@ var Main;
             ResourceGauge.prototype.update = function () {
                 if (this.style.isHorizontal) {
                     var newWidth = (this.resource.current / this.resource.workingMax) * this.style.foregroundWidth;
-                    Main.game.add.tween(this.foreground.scale).to({ 'x': newWidth }, 500, Phaser.Easing.Linear.None, true);
+                    this.foreground.scale.x = newWidth;
                 }
                 else {
                     var newHeight = (this.resource.current / this.resource.workingMax) * this.style.foregroundHeight;
-                    Main.game.add.tween(this.foreground.scale).to({ 'y': newHeight }, 500, Phaser.Easing.Linear.None, true);
+                    this.foreground.scale.y = newHeight;
                 }
             };
             return ResourceGauge;
@@ -1222,6 +1308,9 @@ var Main;
                 this.elements = [];
                 this.generateElements(layoutKey);
             }
+            Layout.prototype.getElement = function (elementKey) {
+                return this.elements.getByName(elementKey);
+            };
             Layout.prototype.generateElements = function (layoutKey) {
                 var layoutData = Main.game.cache.getJSON('ui-layouts');
                 var chosenLayout = (layoutData['layouts'].getByName(layoutKey));

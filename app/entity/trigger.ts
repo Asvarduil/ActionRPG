@@ -1,18 +1,19 @@
 namespace Main.Entities {
     export class Trigger {
         public gameObject: Phaser.Sprite = null;
+        public isTriggered: boolean = false;
 
         public constructor(
             public x: number,
             public y: number,
             public width: number,
             public height: number,
-            spriteScale: number = 1
+            public onEnter: (gameObject: Phaser.Sprite, other: ICollidableObject) => void
         ) {
             const spriteData = game.add.bitmapData(width, height).fill(0, 0, 0, 0);
 
             this.gameObject = game.add.sprite(x, y, spriteData);
-            this.gameObject.scale = new Phaser.Point(spriteScale, spriteScale);
+            this.gameObject.scale = new Phaser.Point(gfxMagnification, gfxMagnification);
 
             this.readyPhysics();
         }
@@ -20,25 +21,34 @@ namespace Main.Entities {
         private readyPhysics(): void {
             game.physics.enable(this.gameObject, Phaser.Physics.ARCADE);
             this.gameObject.anchor.set(0.5, 0.5);
+
+            const body = this.body();
+            body.immovable = true;
+            body.bounce.setTo(0);
+            body.collideWorldBounds = true;
         }
 
         public body(): Phaser.Physics.Arcade.Body {
             return <Phaser.Physics.Arcade.Body>this.gameObject.body;
         }
 
-        public checkOverlapsWith(other: any, onStay: () => void): void {
+        public checkOverlapsWith(other: any): void {
             let collidableObject: ICollidableObject;
             switch (other.constructor) {
-                case Mob:
+                case Entities.Mob:
+                case Entities.Player:
+                    console.log(`Detecting overlap with a Mob...`);
                     collidableObject = <Mob>(other).gameObject;
                     break;
 
                 default:
+                    console.log(`Trigger detected object type: ${JSON.stringify(other.constructor)}`);
                     collidableObject = other;
                     break;
             }
 
-            game.physics.arcade.overlap(this.gameObject, other, onStay);
+            // HACK: Have to use collision, overlap does not work.
+            this.isTriggered = game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
         }
     }
 }
