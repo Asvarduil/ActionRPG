@@ -37,18 +37,15 @@ namespace Main.Entities {
             switch (other.constructor) {
                 case Entities.Mob:
                 case Entities.Player:
-                    console.log(`Detecting overlap with a Mob...`);
                     collidableObject = <Mob>(other).gameObject;
                     break;
 
                 default:
-                    console.log(`Trigger detected object type: ${JSON.stringify(other.constructor)}`);
                     collidableObject = other;
                     break;
             }
 
-            // HACK: Have to use collision, overlap does not work.
-            this.isTriggered = game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
+            this.isTriggered = game.physics.arcade.overlap(this.gameObject, collidableObject, this.onEnter);
         }
     }
 }

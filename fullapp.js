@@ -380,17 +380,15 @@ var Main;
                 switch (other.constructor) {
                     case Entities.Mob:
                     case Entities.Player:
-                        console.log("Detecting overlap with a Mob...");
                         collidableObject = (other).gameObject;
                         break;
                     default:
-                        console.log("Trigger detected object type: " + JSON.stringify(other.constructor));
                         collidableObject = other;
                         break;
                 }
-                //game.physics.arcade.overlap(this.gameObject, collidableObject, this.onStay);
                 // HACK: Have to use collision, overlap does not work.
-                this.isTriggered = Main.game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
+                //this.isTriggered = game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
+                this.isTriggered = Main.game.physics.arcade.overlap(this.gameObject, collidableObject, this.onEnter);
             };
             return Trigger;
         }());
@@ -1055,10 +1053,8 @@ var Main;
                 Main.cameraService.fadeIn(function () { });
             };
             GameState.prototype.onEnterSceneChangeTrigger = function () {
-                console.log("Overlap detected!");
-                if (this.testTrigger.isTriggered === true)
+                if (this.testTrigger.isTriggered)
                     return;
-                console.log("Fading to title...");
                 Main.cameraService.fadeOut(function () {
                     Main.stateService.load('title');
                 });
@@ -1091,8 +1087,6 @@ var Main;
                 this.testTrigger.checkOverlapsWith(this.player);
             };
             GameState.prototype.render = function () {
-                Main.game.debug.body(this.testTrigger.gameObject);
-                Main.game.debug.bodyInfo(this.testTrigger.gameObject, 2, 48);
             };
             return GameState;
         }(Phaser.State));

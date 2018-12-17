@@ -45,11 +45,9 @@ namespace Main.States {
         }
 
         private onEnterSceneChangeTrigger(): void {
-            console.log(`Overlap detected!`);
             if (this.testTrigger.isTriggered)
                 return;
 
-            console.log(`Fading to title...`);
             cameraService.fadeOut(() => {
                 stateService.load('title');
             });
@@ -101,8 +99,6 @@ namespace Main.States {
         }
 
         public render(): void {
-            game.debug.body(this.testTrigger.gameObject);
-            game.debug.bodyInfo(this.testTrigger.gameObject, 2, 48);
         }
     }
 }
