@@ -2,6 +2,7 @@ namespace Main.Services {
     export class Map {
         public layers: Phaser.TilemapLayer[] = [];
         public collisionLayer: Phaser.TilemapLayer = null;
+        public overlayLayer: Phaser.TilemapLayer = null;
 
         public constructor(
             public map: Phaser.Tilemap,
@@ -50,6 +51,18 @@ namespace Main.Services {
 
             this.collisionLayer = collisionLayer;
             return collisionLayer;
+        }
+
+        public addOverlayLayer(
+            layerId: number | string
+        ): Phaser.TilemapLayer {
+            const layer = this.addLayer(layerId);
+            this.overlayLayer = layer;
+            return layer;
+        }
+
+        public elevateOverlayLayer(): void {
+            this.overlayLayer.bringToTop();
         }
 
         public checkCollisionWith(other: any, onCollide?: () => void): void {
@@ -106,6 +119,10 @@ namespace Main.Services {
                                 currentLayer["endCollisionIndex"], 
                                 collisionGroup
                             );
+                        break;
+
+                    case "overlay":
+                        result.addOverlayLayer(index);
                         break;
 
                     default:

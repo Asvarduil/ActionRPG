@@ -16,6 +16,7 @@ namespace Main {
     export var stateService: Services.StateService = null;
     export var inputService: Services.InputService = null;
     export var cameraService: Services.SceneService = null;
+    export var sceneChangeService: Services.SceneChangeService = null;
 
     export var menuFactory: UI.MenuFactory = null;
     export var textFactory: UI.TextFactory = null;
@@ -49,6 +50,7 @@ namespace Main {
             inputService = new Services.InputService();
             mapService = new Services.MapService();
             cameraService = new Services.SceneService();
+            sceneChangeService = new Services.SceneChangeService();
         }
 
         private registerFactories(): void {

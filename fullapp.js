@@ -18,6 +18,7 @@ var Main;
     Main.stateService = null;
     Main.inputService = null;
     Main.cameraService = null;
+    Main.sceneChangeService = null;
     Main.menuFactory = null;
     Main.textFactory = null;
     Main.resourceGaugeFactory = null;
@@ -37,6 +38,7 @@ var Main;
             Main.inputService = new Main.Services.InputService();
             Main.mapService = new Main.Services.MapService();
             Main.cameraService = new Main.Services.SceneService();
+            Main.sceneChangeService = new Main.Services.SceneChangeService();
         };
         App.prototype.registerFactories = function () {
             Main.menuFactory = new Main.UI.MenuFactory();
@@ -281,6 +283,7 @@ var Main;
             __extends(Player, _super);
             function Player(name, x, y, tileSize, imageKey, animationKey, statData, spriteScale) {
                 var _this = _super.call(this, name, x, y, tileSize, imageKey, animationKey, spriteScale, true) || this;
+                // Can be sourced from either new game, or save data.
                 _this.setStatsFromData(statData);
                 return _this;
             }
@@ -320,7 +323,7 @@ var Main;
                 }
             };
             Player.prototype.performMovement = function (hAxis, vAxis, deltaTime) {
-                var physicsBody = this.body();
+                var body = this.body();
                 var speed = this.getStatByName("speed");
                 var dashCost = this.getStatByName("Dash Cost");
                 var stamina = this.getResourceByName("Stamina");
@@ -331,9 +334,8 @@ var Main;
                     speed.addScaledEffect(0.6);
                     this.addXpForSkill(deltaTime, "Conditioning");
                 }
-                // Since I'm using physics why aren't I colliding?
-                physicsBody.velocity.x = hAxis * speed.modifiedValue();
-                physicsBody.velocity.y = vAxis * speed.modifiedValue();
+                body.velocity.x = hAxis * speed.modifiedValue();
+                body.velocity.y = vAxis * speed.modifiedValue();
             };
             Player.prototype.resourceRegeneration = function (deltaTime) {
                 var stamina = this.getResourceByName("Stamina");
@@ -386,8 +388,6 @@ var Main;
                         collidableObject = other;
                         break;
                 }
-                // HACK: Have to use collision, overlap does not work.
-                //this.isTriggered = game.physics.arcade.collide(this.gameObject, collidableObject, this.onEnter);
                 this.isTriggered = Main.game.physics.arcade.overlap(this.gameObject, collidableObject, this.onEnter);
             };
             return Trigger;
@@ -858,6 +858,7 @@ var Main;
                 this.tileScale = tileScale;
                 this.layers = [];
                 this.collisionLayer = null;
+                this.overlayLayer = null;
                 this.map.addTilesetImage(tileSetKey, tileSetKey, tileSize, tileSize);
                 var firstLayer = this.addLayer(0);
                 firstLayer.resizeWorld();
@@ -886,6 +887,14 @@ var Main;
                 }
                 this.collisionLayer = collisionLayer;
                 return collisionLayer;
+            };
+            Map.prototype.addOverlayLayer = function (layerId) {
+                var layer = this.addLayer(layerId);
+                this.overlayLayer = layer;
+                return layer;
+            };
+            Map.prototype.elevateOverlayLayer = function () {
+                this.overlayLayer.bringToTop();
             };
             Map.prototype.checkCollisionWith = function (other, onCollide) {
                 var collidingObject;
@@ -924,6 +933,9 @@ var Main;
                             else
                                 result.addCollisionLayer(currentLayer["layerName"], currentLayer["startCollisionIndex"], currentLayer["endCollisionIndex"], collisionGroup);
                             break;
+                        case "overlay":
+                            result.addOverlayLayer(index);
+                            break;
                         default:
                             result.addLayer(index);
                             break;
@@ -934,6 +946,21 @@ var Main;
             return MapService;
         }());
         Services.MapService = MapService;
+    })(Services = Main.Services || (Main.Services = {}));
+})(Main || (Main = {}));
+var Main;
+(function (Main) {
+    var Services;
+    (function (Services) {
+        var SceneChangeService = /** @class */ (function () {
+            function SceneChangeService() {
+                this.mapKey = '';
+                this.x = 0;
+                this.y = 0;
+            }
+            return SceneChangeService;
+        }());
+        Services.SceneChangeService = SceneChangeService;
     })(Services = Main.Services || (Main.Services = {}));
 })(Main || (Main = {}));
 var Main;
@@ -1018,8 +1045,6 @@ var Main;
             __extends(GameState, _super);
             function GameState() {
                 var _this = _super !== null && _super.apply(this, arguments) || this;
-                // TODO: Entity pools
-                // TODO: Global sprite scaling
                 _this.map = null;
                 _this.player = null;
                 _this.layout = null;
@@ -1037,6 +1062,7 @@ var Main;
                 this.player = this.mobPool.add('player', 'player', 96, 96);
                 this.npc = this.mobPool.add('npc', 'npc', 96, 192);
                 this.testTrigger = new Main.Entities.Trigger(16, 192, 16, 32, this.onEnterSceneChangeTrigger.bind(this));
+                this.map.elevateOverlayLayer();
                 this.layout = new Main.UI.Layout('game-ui');
                 var skillUpLabel = (this.layout.getElement('skillUpLabel'));
                 skillUpLabel.alpha = 0;

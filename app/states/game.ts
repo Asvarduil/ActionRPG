@@ -1,7 +1,5 @@
 namespace Main.States {
     export class GameState extends Phaser.State {
-        // TODO: Entity pools
-        // TODO: Global sprite scaling
         public map: Services.Map = null;
         public player: Entities.Player = null;
         public layout: UI.Layout = null;
@@ -23,6 +21,8 @@ namespace Main.States {
             this.npc = this.mobPool.add('npc', 'npc', 96, 192);
 
             this.testTrigger = new Entities.Trigger(16, 192, 16, 32, this.onEnterSceneChangeTrigger.bind(this));
+
+            this.map.elevateOverlayLayer();
 
             this.layout = new UI.Layout('game-ui');
             

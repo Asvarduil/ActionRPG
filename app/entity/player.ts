@@ -21,6 +21,7 @@ namespace Main.Entities {
                 true
             );
 
+            // Can be sourced from either new game, or save data.
             this.setStatsFromData(statData);
         }
 
@@ -65,7 +66,7 @@ namespace Main.Entities {
             vAxis: number, 
             deltaTime: number
         ): void {
-            const physicsBody = this.body();
+            const body = this.body();
             const speed = this.getStatByName("speed");
             const dashCost = this.getStatByName("Dash Cost");
             const stamina = this.getResourceByName("Stamina");
@@ -78,9 +79,8 @@ namespace Main.Entities {
                 this.addXpForSkill(deltaTime, "Conditioning");
             }
 
-            // Since I'm using physics why aren't I colliding?
-            physicsBody.velocity.x = hAxis * speed.modifiedValue();
-            physicsBody.velocity.y = vAxis * speed.modifiedValue();
+            body.velocity.x = hAxis * speed.modifiedValue();
+            body.velocity.y = vAxis * speed.modifiedValue();
         }
 
         private resourceRegeneration(deltaTime: number): void {

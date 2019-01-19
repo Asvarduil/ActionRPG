@@ -16,7 +16,7 @@
                 },
                 {
                     "index": 2,
-                    "type": "tile",
+                    "type": "overlay",
                     "layerName": "Overlay"
                 }
             ]
